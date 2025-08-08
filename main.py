@@ -8,8 +8,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 import requests
 import io
 from datetime import datetime
-from openpyxl import load_workbook
-from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 import streamlit as st
 
@@ -709,80 +708,85 @@ if data_loaded:
     """, unsafe_allow_html=True)
     
     # Export functionality
-    st.markdown("---")
-
     def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambodia"):
-        """
-        Applies professional styling to each sheet in the Excel file and adds a header title.
-        """
         workbook = writer.book
-        
+
+        # Define styles
+        title_font = Font(bold=True, size=16, color="1A365D")
+        header_font = Font(bold=True, size=12, color="FFFFFF")
+        header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
+        center_alignment = Alignment(horizontal="center", vertical="center")
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
         for sheet_name in writer.sheets:
             worksheet = writer.sheets[sheet_name]
-            
-            # Insert a new row at the top to add the title
+
+            # Insert a new row at the top for the title
             worksheet.insert_rows(1)
-            
-            # Merge cells for the title across all columns with data
+
             max_col = worksheet.max_column
+
+            # Merge cells for the title
             worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
-            
-            # Set title text and style
+
+            # Title cell
             title_cell = worksheet.cell(row=1, column=1)
             title_cell.value = title
-            title_cell.font = Font(bold=True, size=14, color="1A365D")
-            title_cell.alignment = Alignment(horizontal="center", vertical="center")
-            
-            # Define header styles for row 2 (which was originally row 1)
-            header_font = Font(bold=True, size=12, color="FFFFFF")
-            header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
-            alignment = Alignment(horizontal="center", vertical="center")
-            
-            # Apply styles to headers in row 2
-            for cell in worksheet["2:2"]:
+            title_cell.font = title_font
+            title_cell.alignment = center_alignment
+
+            # Style header row (now row 2)
+            for cell in worksheet[2]:
                 cell.font = header_font
                 cell.fill = header_fill
-                cell.alignment = alignment
-            
-            # Adjust column widths and center align data starting from row 3
+                cell.alignment = center_alignment
+                cell.border = thin_border
+
+            # Add autofilter to header row
+            worksheet.auto_filter.ref = f"A2:{get_column_letter(max_col)}2"
+
+            # Adjust column widths and apply alignment and border to data rows (from row 3 onward)
             for col in worksheet.columns:
                 max_length = 0
-                column = get_column_letter(col[0].column)
+                col_letter = get_column_letter(col[0].column)
                 for cell in col:
-                    try:
-                        if cell.row < 3:
-                            # Skip title row and header row for length calculation
-                            continue
-                        if cell.value and len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                adjusted_width = (max_length + 2)
-                worksheet.column_dimensions[column].width = adjusted_width
-                
-                for cell in col[2:]:  # From row 3 downward
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-            
-            # Freeze the row below the title and header rows for better navigation
-            worksheet.freeze_panes = 'A3'
+                    if cell.row < 3:
+                        continue
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                adjusted_width = max(10, max_length + 2)  # Minimum width 10
+                worksheet.column_dimensions[col_letter].width = adjusted_width
 
-    # Create an in-memory buffer
+                # Apply alignment and border for data cells starting row 3
+                for cell in col[2:]:
+                    cell.alignment = center_alignment
+                    cell.border = thin_border
+
+            # Set row height for title and header for better look
+            worksheet.row_dimensions[1].height = 30
+            worksheet.row_dimensions[2].height = 20
+
+            # Freeze panes below header row
+            worksheet.freeze_panes = worksheet['A3']
+
+    # Usage example with your DataFrames and Streamlit
     output = io.BytesIO()
 
-    # Write data to the buffer and apply styling
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df_workshops.to_excel(writer, sheet_name='Workshops', index=False)
-        df_jobs.to_excel(writer, sheet_name='Jobs', index=False) 
+        df_jobs.to_excel(writer, sheet_name='Jobs', index=False)
         df_startups.to_excel(writer, sheet_name='Startups', index=False)
         growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False)
-        
-        # Apply styling to all sheets
+
         style_excel_sheet(writer)
 
-    # Rewind the buffer
     output.seek(0)
 
-    # Provide the download button
     st.download_button(
         label="📥 Download Styled Excel File",
         data=output,

@@ -297,6 +297,82 @@ st.markdown("""
 st.markdown("---")
 
 # -------------------------------
+# Dynamic Percentage Growth Calculator (NEW SECTION)
+# -------------------------------
+st.subheader("📈 Dynamic Percentage Growth Calculator")
+st.markdown("""
+Use this section to calculate the percentage growth of any selected item between two specific years.
+""")
+
+# Select category
+category_options = ["Workshops", "Jobs", "Startups"]
+selected_category = st.selectbox("Select Data Category", category_options, key="growth_category")
+
+# Determine the DataFrame and available items based on selected category
+df_to_use = None
+items_to_choose = []
+if selected_category == "Workshops":
+    df_to_use = df_workshops
+    items_to_choose = df_workshops.columns[1:].tolist()
+elif selected_category == "Jobs":
+    df_to_use = df_jobs
+    items_to_choose = df_jobs.columns[1:].tolist()
+elif selected_category == "Startups":
+    df_to_use = df_startups
+    items_to_choose = df_startups.columns[1:].tolist()
+
+# Select the specific item
+if items_to_choose:
+    selected_item = st.selectbox(f"Select {selected_category} Item", items_to_choose, key="growth_item")
+
+    # Select start and end years
+    min_year_data = df_to_use['Year'].min()
+    max_year_data = df_to_use['Year'].max()
+
+    col_start_year, col_end_year = st.columns(2)
+    with col_start_year:
+        start_year_growth = st.number_input(
+            "Start Year",
+            min_value=min_year_data,
+            max_value=max_year_data,
+            value=min_year_data,
+            key="growth_start_year"
+        )
+    with col_end_year:
+        end_year_growth = st.number_input(
+            "End Year",
+            min_value=min_year_data,
+            max_value=max_year_data,
+            value=max_year_data,
+            key="growth_end_year"
+        )
+
+    # Perform calculation
+    if start_year_growth >= end_year_growth:
+        st.error("End Year must be greater than Start Year for growth calculation.")
+    else:
+        try:
+            previous_value = df_to_use[df_to_use['Year'] == start_year_growth][selected_item].iloc[0]
+            current_value = df_to_use[df_to_use['Year'] == end_year_growth][selected_item].iloc[0]
+
+            st.write(f"#### Growth for **{selected_item}** from {start_year_growth} to {end_year_growth}")
+            st.write(f"- Value in {start_year_growth}: **{previous_value:,}**")
+            st.write(f"- Value in {end_year_growth}: **{current_value:,}**")
+
+            if previous_value == 0:
+                st.warning("Cannot calculate percentage growth: The starting value is zero.")
+            else:
+                growth_percentage = ((current_value - previous_value) / previous_value) * 100
+                st.metric(label="Percentage Growth", value=f"{growth_percentage:.2f}%")
+
+        except IndexError:
+            st.error("Data for the selected year(s) or item is not available.")
+else:
+    st.info("No items available for this category.")
+
+st.markdown("---")
+
+# -------------------------------
 # Prediction Section for WORKSHOPS - Updated with columns
 # -------------------------------
 st.subheader("🔮 Predict Future Workshop Participation (2031–2033)")

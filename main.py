@@ -711,45 +711,60 @@ if data_loaded:
     # Export functionality
     st.markdown("---")
 
-    def style_excel_sheet(writer):
+    def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambodia"):
         """
-        Applies professional styling to each sheet in the Excel file.
+        Applies professional styling to each sheet in the Excel file and adds a header title.
         """
         workbook = writer.book
         
         for sheet_name in writer.sheets:
             worksheet = writer.sheets[sheet_name]
             
-            # Define styles
+            # Insert a new row at the top to add the title
+            worksheet.insert_rows(1)
+            
+            # Merge cells for the title across all columns with data
+            max_col = worksheet.max_column
+            worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
+            
+            # Set title text and style
+            title_cell = worksheet.cell(row=1, column=1)
+            title_cell.value = title
+            title_cell.font = Font(bold=True, size=14, color="1A365D")
+            title_cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Define header styles for row 2 (which was originally row 1)
             header_font = Font(bold=True, size=12, color="FFFFFF")
             header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
             alignment = Alignment(horizontal="center", vertical="center")
             
-            # Apply styles to headers
-            for cell in worksheet["1:1"]:
+            # Apply styles to headers in row 2
+            for cell in worksheet["2:2"]:
                 cell.font = header_font
                 cell.fill = header_fill
                 cell.alignment = alignment
-                
-            # Adjust column widths and center alignment for all data
+            
+            # Adjust column widths and center align data starting from row 3
             for col in worksheet.columns:
                 max_length = 0
                 column = get_column_letter(col[0].column)
                 for cell in col:
                     try:
-                        if len(str(cell.value)) > max_length:
+                        if cell.row < 3:
+                            # Skip title row and header row for length calculation
+                            continue
+                        if cell.value and len(str(cell.value)) > max_length:
                             max_length = len(str(cell.value))
                     except:
                         pass
                 adjusted_width = (max_length + 2)
                 worksheet.column_dimensions[column].width = adjusted_width
                 
-                for cell in col[1:]: # Skip header row
+                for cell in col[2:]:  # From row 3 downward
                     cell.alignment = Alignment(horizontal="center", vertical="center")
-
-            # Freeze the top row for better navigation
-            worksheet.freeze_panes = 'A2'
-
+            
+            # Freeze the row below the title and header rows for better navigation
+            worksheet.freeze_panes = 'A3'
 
     # Create an in-memory buffer
     output = io.BytesIO()

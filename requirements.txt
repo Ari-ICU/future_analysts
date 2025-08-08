@@ -6,3 +6,4 @@ matplotlib
 joblib
 pyyaml
 plotly
+scikit-learn

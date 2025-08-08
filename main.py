@@ -723,17 +723,15 @@ if data_loaded:
         center_alignment = Alignment(horizontal="center", vertical="center")
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
         
-        # Get the current date and time for the timestamp
         export_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         for sheet_name in writer.sheets:
             worksheet = writer.sheets[sheet_name]
             
-            # --- Add and style title and timestamp ---
-            worksheet.insert_rows(1, amount=2) # Insert 2 new rows for title and a spacer
+            # Add and style title and timestamp
+            worksheet.insert_rows(1, amount=2)
             max_col = worksheet.max_column
 
-            # Title Row
             worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
             title_cell = worksheet.cell(row=1, column=1)
             title_cell.value = title
@@ -741,14 +739,13 @@ if data_loaded:
             title_cell.fill = title_fill
             title_cell.alignment = center_alignment
 
-            # Timestamp Row
             worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=max_col)
             timestamp_cell = worksheet.cell(row=2, column=1)
             timestamp_cell.value = f"Data as of: {export_time}"
             timestamp_cell.font = Font(size=10, italic=True)
             timestamp_cell.alignment = Alignment(horizontal="right")
 
-            # --- Style header row (now row 3) ---
+            # Style header row (now row 3)
             for cell in worksheet[3]:
                 cell.font = header_font
                 cell.fill = header_fill
@@ -756,22 +753,26 @@ if data_loaded:
                 cell.border = thin_border
             
             worksheet.auto_filter.ref = f"A3:{get_column_letter(max_col)}3"
-            worksheet.row_dimensions[3].height = 25 # Set header row height
+            worksheet.row_dimensions[3].height = 25
 
-            # --- Apply styling to all data cells (from row 4 onward) ---
+            # Apply styling to all data cells (from row 4 onward)
             for col_idx, column in enumerate(worksheet.columns, start=1):
                 max_length = 0
                 col_letter = get_column_letter(col_idx)
                 
+                # Get the header text for the current column to check for "growth"
+                header_text = str(worksheet.cell(row=3, column=col_idx).value).lower()
+                
                 for cell in column:
-                    if cell.row < 4: continue # Skip title, timestamp, and header rows
+                    if cell.row < 4: continue
                     
                     # Apply data-specific formatting
                     if isinstance(cell.value, (int, float)):
-                        if "growth" in cell.value:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE # Example for a growth rate column
+                        # Check the header to determine if it's a growth rate
+                        if "growth" in header_text or "rate" in header_text:
+                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
                         else:
-                            cell.number_format = numbers.FORMAT_NUMBER_COMMA_SEPARATED1 # e.g., 1,000,000
+                            cell.number_format = numbers.FORMAT_NUMBER_COMMA_SEPARATED1
                     
                     cell.alignment = center_alignment
                     cell.border = thin_border
@@ -783,14 +784,12 @@ if data_loaded:
                     except:
                         pass
                 
-                # Apply auto-width and check for minimum width
                 adjusted_width = max(max_length + 2, 12)
                 worksheet.column_dimensions[col_letter].width = adjusted_width
 
-            # --- Final sheet configuration ---
-            worksheet.row_dimensions[1].height = 40 # Set title row height
-            worksheet.freeze_panes = 'A4' # Freeze panes below the header row
-
+            worksheet.row_dimensions[1].height = 40
+            worksheet.freeze_panes = 'A4'
+            
     # Usage example with your Streamlit app
     output = io.BytesIO()
 

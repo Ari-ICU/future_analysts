@@ -9,11 +9,12 @@ from sklearn.pipeline import Pipeline
 import io
 from datetime import datetime
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, GradientFill, NamedStyle
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, GradientFill, NamedStyle, Protection
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_COMMA_SEPARATED1
 from openpyxl.worksheet.filters import FilterColumn, Filters
+from copy import copy
 
 # -------------------------------
 # App Configuration & Professional Styling
@@ -214,6 +215,7 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
         title_style.font = Font(name='Calibri', bold=True, size=16, color="1A365D")
         title_style.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         title_style.fill = PatternFill(start_color="E6F3FF", end_color="E6F3FF", fill_type="solid")
+        title_style.protection = Protection(locked=True)
 
         header_style = NamedStyle(name="header_style")
         header_style.font = Font(name='Calibri', bold=True, size=12, color="FFFFFF")
@@ -225,6 +227,7 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             top=Side(style='thin', color='D3D3D3'),
             bottom=Side(style='thin', color='D3D3D3')
         )
+        header_style.protection = Protection(locked=True)
 
         data_style_numeric = NamedStyle(name="data_style_numeric")
         data_style_numeric.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -235,6 +238,7 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             bottom=Side(style='thin', color='D3D3D3')
         )
         data_style_numeric.number_format = FORMAT_NUMBER_COMMA_SEPARATED1
+        data_style_numeric.protection = Protection(locked=False)
 
         data_style_text = NamedStyle(name="data_style_text")
         data_style_text.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
@@ -244,6 +248,7 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             top=Side(style='thin', color='D3D3D3'),
             bottom=Side(style='thin', color='D3D3D3')
         )
+        data_style_text.protection = Protection(locked=False)
 
         alternating_fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
 
@@ -279,6 +284,8 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             subtitle_cell.font = Font(name='Calibri', size=12, italic=True)
             subtitle_cell.alignment = Alignment(horizontal="center", vertical="center")
             subtitle_cell.fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
+            subtitle_cell.style = copy(subtitle_cell.style)
+            subtitle_cell.style.protection = Protection(locked=True)
 
             # Style header row (now row 4)
             for cell in worksheet[4]:
@@ -289,12 +296,18 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             worksheet.cell(row=last_row + 2, column=1).value = "Summary Statistics"
             worksheet.cell(row=last_row + 2, column=1).font = Font(name='Calibri', bold=True, size=12)
             worksheet.merge_cells(start_row=last_row + 2, start_column=1, end_row=last_row + 2, end_column=2)
+            stats_title_cell = worksheet.cell(row=last_row + 2, column=1)
+            stats_title_cell.style = copy(stats_title_cell.style)
+            stats_title_cell.style.protection = Protection(locked=True)
 
             # Calculate and add statistics
             stats = ["Average", "Maximum", "Minimum", "Growth Rate"]
             for i, stat in enumerate(stats, start=last_row + 3):
                 worksheet.cell(row=i, column=1).value = stat
                 worksheet.cell(row=i, column=1).font = Font(name='Calibri', bold=True, size=11)
+                stat_label_cell = worksheet.cell(row=i, column=1)
+                stat_label_cell.style = copy(stat_label_cell.style)
+                stat_label_cell.style.protection = Protection(locked=True)
                 for col in range(2, max_col + 1):
                     col_letter = get_column_letter(col)
                     data_range = f"{col_letter}5:{col_letter}{last_row}"
@@ -387,7 +400,7 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             worksheet.auto_filter.ref = f"A4:{get_column_letter(max_col)}4"
             auto_filter = worksheet.auto_filter
             filter_col = FilterColumn(colId=0)  # Year column
-            filters = Filters(blank=False)  # Correctly instantiate Filters object
+            filters = Filters(blank=False)
             filter_col.filters = filters
             auto_filter.filterColumn.append(filter_col)
 
@@ -397,9 +410,6 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             # Add worksheet protection
             worksheet.protection.sheet = True
             worksheet.protection.autoFilter = False
-            for row in worksheet[f"A1:{get_column_letter(max_col)}4"]:
-                for cell in row:
-                    cell.protection.locked = True
 
         # Add a polished cover sheet
         cover_sheet = workbook.create_sheet("Cover", 0)
@@ -419,6 +429,8 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             type="linear",
             degree=45
         )
+        cover_cell.style = copy(cover_cell.style)
+        cover_cell.style.protection = Protection(locked=True)
         cover_sheet.row_dimensions[1].height = 120
         for col in ['A', 'B', 'C', 'D', 'E']:
             cover_sheet.column_dimensions[col].width = 20
@@ -437,6 +449,10 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             metadata_sheet[f"A{i}"].font = Font(name='Calibri', bold=True, size=11)
             metadata_sheet[f"B{i}"].value = value
             metadata_sheet[f"B{i}"].alignment = Alignment(wrap_text=True)
+            metadata_sheet[f"A{i}"].style = copy(metadata_sheet[f"A{i}"].style)
+            metadata_sheet[f"A{i}"].style.protection = Protection(locked=True)
+            metadata_sheet[f"B{i}"].style = copy(metadata_sheet[f"B{i}"].style)
+            metadata_sheet[f"B{i}"].style.protection = Protection(locked=True)
             metadata_sheet.column_dimensions['A'].width = 20
             metadata_sheet.column_dimensions['B'].width = 60
 

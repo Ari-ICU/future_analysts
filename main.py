@@ -8,6 +8,10 @@ from sklearn.metrics import mean_absolute_error, r2_score
 import requests
 import io
 from datetime import datetime
+from openpyxl import load_workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
+import streamlit as st
 
 # -------------------------------
 # App Configuration & Professional Styling
@@ -707,24 +711,69 @@ if data_loaded:
     # Export functionality
     st.markdown("---")
 
-    # Use a BytesIO object to create the Excel file in memory
+    def style_excel_sheet(writer):
+        """
+        Applies professional styling to each sheet in the Excel file.
+        """
+        workbook = writer.book
+        
+        for sheet_name in writer.sheets:
+            worksheet = writer.sheets[sheet_name]
+            
+            # Define styles
+            header_font = Font(bold=True, size=12, color="FFFFFF")
+            header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
+            alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Apply styles to headers
+            for cell in worksheet["1:1"]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = alignment
+                
+            # Adjust column widths and center alignment for all data
+            for col in worksheet.columns:
+                max_length = 0
+                column = get_column_letter(col[0].column)
+                for cell in col:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = (max_length + 2)
+                worksheet.column_dimensions[column].width = adjusted_width
+                
+                for cell in col[1:]: # Skip header row
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+
+            # Freeze the top row for better navigation
+            worksheet.freeze_panes = 'A2'
+
+
+    # Create an in-memory buffer
     output = io.BytesIO()
+
+    # Write data to the buffer and apply styling
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df_workshops.to_excel(writer, sheet_name='Workshops', index=False)
         df_jobs.to_excel(writer, sheet_name='Jobs', index=False) 
         df_startups.to_excel(writer, sheet_name='Startups', index=False)
         growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False)
+        
+        # Apply styling to all sheets
+        style_excel_sheet(writer)
 
-    # Rewind the buffer to the beginning
+    # Rewind the buffer
     output.seek(0)
 
-    # Create a download button for the user
+    # Provide the download button
     st.download_button(
-        label="📥 Download Dashboard Data as Excel",
+        label="📥 Download Styled Excel File",
         data=output,
         file_name="cambodia_digital_economy_data.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        help="Click to download all dashboard data in a multi-sheet Excel file."
+        help="Click to download a beautifully formatted Excel report."
     )
 
 else:

@@ -8,7 +8,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 import requests
 import io
 from datetime import datetime
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side, numbers
 from openpyxl.utils import get_column_letter
 import streamlit as st
 
@@ -708,91 +708,108 @@ if data_loaded:
     """, unsafe_allow_html=True)
     
     # Export functionality
-    def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambodia"):
+    def style_excel_sheet(writer, title="Cambodia Digital Economy Analytics Platform"):
+        """
+        Applies professional, dynamic styling to each sheet in the Excel file.
+        Includes a title row, headers with filters, formatted data, and an export timestamp.
+        """
         workbook = writer.book
 
-        # Define styles
-        title_font = Font(bold=True, size=16, color="1A365D")
+        # Define common styles
+        title_font = Font(bold=True, size=16, color="FFFFFF")
+        title_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
         header_font = Font(bold=True, size=12, color="FFFFFF")
-        header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
+        header_fill = PatternFill(start_color="2D3748", end_color="2D3748", fill_type="solid")
         center_alignment = Alignment(horizontal="center", vertical="center")
-        thin_border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
+        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+        
+        # Get the current date and time for the timestamp
+        export_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         for sheet_name in writer.sheets:
             worksheet = writer.sheets[sheet_name]
-
-            # Insert a new row at the top for the title
-            worksheet.insert_rows(1)
-
+            
+            # --- Add and style title and timestamp ---
+            worksheet.insert_rows(1, amount=2) # Insert 2 new rows for title and a spacer
             max_col = worksheet.max_column
 
-            # Merge cells for the title
+            # Title Row
             worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
-
-            # Title cell
             title_cell = worksheet.cell(row=1, column=1)
             title_cell.value = title
             title_cell.font = title_font
+            title_cell.fill = title_fill
             title_cell.alignment = center_alignment
 
-            # Style header row (now row 2)
-            for cell in worksheet[2]:
+            # Timestamp Row
+            worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=max_col)
+            timestamp_cell = worksheet.cell(row=2, column=1)
+            timestamp_cell.value = f"Data as of: {export_time}"
+            timestamp_cell.font = Font(size=10, italic=True)
+            timestamp_cell.alignment = Alignment(horizontal="right")
+
+            # --- Style header row (now row 3) ---
+            for cell in worksheet[3]:
                 cell.font = header_font
                 cell.fill = header_fill
                 cell.alignment = center_alignment
                 cell.border = thin_border
+            
+            worksheet.auto_filter.ref = f"A3:{get_column_letter(max_col)}3"
+            worksheet.row_dimensions[3].height = 25 # Set header row height
 
-            # Add autofilter to header row
-            worksheet.auto_filter.ref = f"A2:{get_column_letter(max_col)}2"
-
-            # Adjust column widths and apply alignment and border to data rows (from row 3 onward)
-            for col in worksheet.columns:
+            # --- Apply styling to all data cells (from row 4 onward) ---
+            for col_idx, column in enumerate(worksheet.columns, start=1):
                 max_length = 0
-                col_letter = get_column_letter(col[0].column)
-                for cell in col:
-                    if cell.row < 3:
-                        continue
-                    if cell.value:
-                        max_length = max(max_length, len(str(cell.value)))
-                adjusted_width = max(10, max_length + 2)  # Minimum width 10
-                worksheet.column_dimensions[col_letter].width = adjusted_width
-
-                # Apply alignment and border for data cells starting row 3
-                for cell in col[2:]:
+                col_letter = get_column_letter(col_idx)
+                
+                for cell in column:
+                    if cell.row < 4: continue # Skip title, timestamp, and header rows
+                    
+                    # Apply data-specific formatting
+                    if isinstance(cell.value, (int, float)):
+                        if "growth" in cell.value:
+                            cell.number_format = numbers.FORMAT_PERCENTAGE # Example for a growth rate column
+                        else:
+                            cell.number_format = numbers.FORMAT_NUMBER_COMMA_SEPARATED1 # e.g., 1,000,000
+                    
                     cell.alignment = center_alignment
                     cell.border = thin_border
+                    
+                    # Calculate max length for auto-sizing
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                
+                # Apply auto-width and check for minimum width
+                adjusted_width = max(max_length + 2, 12)
+                worksheet.column_dimensions[col_letter].width = adjusted_width
 
-            # Set row height for title and header for better look
-            worksheet.row_dimensions[1].height = 30
-            worksheet.row_dimensions[2].height = 20
+            # --- Final sheet configuration ---
+            worksheet.row_dimensions[1].height = 40 # Set title row height
+            worksheet.freeze_panes = 'A4' # Freeze panes below the header row
 
-            # Freeze panes below header row
-            worksheet.freeze_panes = worksheet['A3']
-
-    # Usage example with your DataFrames and Streamlit
+    # Usage example with your Streamlit app
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_workshops.to_excel(writer, sheet_name='Workshops', index=False)
-        df_jobs.to_excel(writer, sheet_name='Jobs', index=False)
-        df_startups.to_excel(writer, sheet_name='Startups', index=False)
-        growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False)
+        df_workshops.to_excel(writer, sheet_name='Workshops', index=False, startrow=2)
+        df_jobs.to_excel(writer, sheet_name='Jobs', index=False, startrow=2)
+        df_startups.to_excel(writer, sheet_name='Startups', index=False, startrow=2)
+        growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False, startrow=2)
 
         style_excel_sheet(writer)
 
     output.seek(0)
 
     st.download_button(
-        label="📥 Download Styled Excel File",
+        label="📥 Download Professional Excel Report",
         data=output,
         file_name="cambodia_digital_economy_data.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        help="Click to download a beautifully formatted Excel report."
+        help="Click to download a beautifully formatted and ready-to-present Excel report."
     )
 
 else:

@@ -10,7 +10,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 # App Configuration & Styling
 # -------------------------------
 st.set_page_config(
-    page_title="🇰🇭 Cambodia's Digital Economy Forecast (2025–2030)",
+    page_title="�🇭 Cambodia's Digital Economy Forecast (2025–2030)",
     page_icon="📊",
     layout="wide"
 )
@@ -304,66 +304,142 @@ st.markdown("""
 Use this section to calculate the percentage growth of any selected item between two specific years.
 """)
 
-# Select category
+# Select category for percentage growth
 category_options = ["Workshops", "Jobs", "Startups"]
-selected_category = st.selectbox("Select Data Category", category_options, key="growth_category")
+selected_category_pct = st.selectbox("Select Data Category for Percentage Growth", category_options, key="growth_category_pct")
 
 # Determine the DataFrame and available items based on selected category
-df_to_use = None
-items_to_choose = []
-if selected_category == "Workshops":
-    df_to_use = df_workshops
-    items_to_choose = df_workshops.columns[1:].tolist()
-elif selected_category == "Jobs":
-    df_to_use = df_jobs
-    items_to_choose = df_jobs.columns[1:].tolist()
-elif selected_category == "Startups":
-    df_to_use = df_startups
-    items_to_choose = df_startups.columns[1:].tolist()
+df_to_use_pct = None
+items_to_choose_pct = []
+if selected_category_pct == "Workshops":
+    df_to_use_pct = df_workshops
+    items_to_choose_pct = df_workshops.columns[1:].tolist()
+elif selected_category_pct == "Jobs":
+    df_to_use_pct = df_jobs
+    items_to_choose_pct = df_jobs.columns[1:].tolist()
+elif selected_category_pct == "Startups":
+    df_to_use_pct = df_startups
+    items_to_choose_pct = df_startups.columns[1:].tolist()
 
-# Select the specific item
-if items_to_choose:
-    selected_item = st.selectbox(f"Select {selected_category} Item", items_to_choose, key="growth_item")
+# Select the specific item for percentage growth
+if items_to_choose_pct:
+    selected_item_pct = st.selectbox(f"Select {selected_category_pct} Item for Percentage Growth", items_to_choose_pct, key="growth_item_pct")
 
-    # Select start and end years
-    min_year_data = df_to_use['Year'].min()
-    max_year_data = df_to_use['Year'].max()
+    # Select start and end years for percentage growth
+    min_year_data_pct = df_to_use_pct['Year'].min()
+    max_year_data_pct = df_to_use_pct['Year'].max()
 
-    col_start_year, col_end_year = st.columns(2)
-    with col_start_year:
-        start_year_growth = st.number_input(
-            "Start Year",
-            min_value=min_year_data,
-            max_value=max_year_data,
-            value=min_year_data,
-            key="growth_start_year"
+    col_start_year_pct, col_end_year_pct = st.columns(2)
+    with col_start_year_pct:
+        start_year_pct = st.number_input(
+            "Start Year (Percentage Growth)",
+            min_value=min_year_data_pct,
+            max_value=max_year_data_pct,
+            value=min_year_data_pct,
+            key="growth_start_year_pct"
         )
-    with col_end_year:
-        end_year_growth = st.number_input(
-            "End Year",
-            min_value=min_year_data,
-            max_value=max_year_data,
-            value=max_year_data,
-            key="growth_end_year"
+    with col_end_year_pct:
+        end_year_pct = st.number_input(
+            "End Year (Percentage Growth)",
+            min_value=min_year_data_pct,
+            max_value=max_year_data_pct,
+            value=max_year_data_pct,
+            key="growth_end_year_pct"
         )
 
-    # Perform calculation
-    if start_year_growth >= end_year_growth:
-        st.error("End Year must be greater than Start Year for growth calculation.")
+    # Perform percentage growth calculation
+    if start_year_pct >= end_year_pct:
+        st.error("End Year must be greater than Start Year for percentage growth calculation.")
     else:
         try:
-            previous_value = df_to_use[df_to_use['Year'] == start_year_growth][selected_item].iloc[0]
-            current_value = df_to_use[df_to_use['Year'] == end_year_growth][selected_item].iloc[0]
+            previous_value_pct = df_to_use_pct[df_to_use_pct['Year'] == start_year_pct][selected_item_pct].iloc[0]
+            current_value_pct = df_to_use_pct[df_to_use_pct['Year'] == end_year_pct][selected_item_pct].iloc[0]
 
-            st.write(f"#### Growth for **{selected_item}** from {start_year_growth} to {end_year_growth}")
-            st.write(f"- Value in {start_year_growth}: **{previous_value:,}**")
-            st.write(f"- Value in {end_year_growth}: **{current_value:,}**")
+            st.write(f"#### Growth for **{selected_item_pct}** from {start_year_pct} to {end_year_pct}")
+            st.write(f"- Value in {start_year_pct}: **{previous_value_pct:,}**")
+            st.write(f"- Value in {end_year_pct}: **{current_value_pct:,}**")
 
-            if previous_value == 0:
+            if previous_value_pct == 0:
                 st.warning("Cannot calculate percentage growth: The starting value is zero.")
             else:
-                growth_percentage = ((current_value - previous_value) / previous_value) * 100
+                growth_percentage = ((current_value_pct - previous_value_pct) / previous_value_pct) * 100
                 st.metric(label="Percentage Growth", value=f"{growth_percentage:.2f}%")
+
+        except IndexError:
+            st.error("Data for the selected year(s) or item is not available.")
+else:
+    st.info("No items available for this category.")
+
+st.markdown("---")
+
+st.subheader("📊 Dynamic Compound Annual Growth Rate (CAGR) Calculator")
+st.markdown("""
+Calculate the Compound Annual Growth Rate (CAGR) for any selected item between two specific years.
+""")
+
+# Select category for CAGR
+selected_category_cagr = st.selectbox("Select Data Category for CAGR", category_options, key="cagr_category")
+
+# Determine the DataFrame and available items based on selected category
+df_to_use_cagr = None
+items_to_choose_cagr = []
+if selected_category_cagr == "Workshops":
+    df_to_use_cagr = df_workshops
+    items_to_choose_cagr = df_workshops.columns[1:].tolist()
+elif selected_category_cagr == "Jobs":
+    df_to_use_cagr = df_jobs
+    items_to_choose_cagr = df_jobs.columns[1:].tolist()
+elif selected_category_cagr == "Startups":
+    df_to_use_cagr = df_startups
+    items_to_choose_cagr = df_startups.columns[1:].tolist()
+
+# Select the specific item for CAGR
+if items_to_choose_cagr:
+    selected_item_cagr = st.selectbox(f"Select {selected_category_cagr} Item for CAGR", items_to_choose_cagr, key="cagr_item")
+
+    # Select start and end years for CAGR
+    min_year_data_cagr = df_to_use_cagr['Year'].min()
+    max_year_data_cagr = df_to_use_cagr['Year'].max()
+
+    col_start_year_cagr, col_end_year_cagr = st.columns(2)
+    with col_start_year_cagr:
+        start_year_cagr = st.number_input(
+            "Start Year (CAGR)",
+            min_value=min_year_data_cagr,
+            max_value=max_year_data_cagr,
+            value=min_year_data_cagr,
+            key="cagr_start_year"
+        )
+    with col_end_year_cagr:
+        end_year_cagr = st.number_input(
+            "End Year (CAGR)",
+            min_value=min_year_data_cagr,
+            max_value=max_year_data_cagr,
+            value=max_year_data_cagr,
+            key="cagr_end_year"
+        )
+
+    # Perform CAGR calculation
+    if start_year_cagr >= end_year_cagr:
+        st.error("End Year must be greater than Start Year for CAGR calculation.")
+    else:
+        try:
+            beginning_value = df_to_use_cagr[df_to_use_cagr['Year'] == start_year_cagr][selected_item_cagr].iloc[0]
+            ending_value = df_to_use_cagr[df_to_use_cagr['Year'] == end_year_cagr][selected_item_cagr].iloc[0]
+            number_of_years = end_year_cagr - start_year_cagr
+
+            st.write(f"#### CAGR for **{selected_item_cagr}** from {start_year_cagr} to {end_year_cagr}")
+            st.write(f"- Value in {start_year_cagr}: **{beginning_value:,}**")
+            st.write(f"- Value in {end_year_cagr}: **{ending_value:,}**")
+            st.write(f"- Number of Years: **{number_of_years}**")
+
+            if beginning_value == 0:
+                st.warning("Cannot calculate CAGR: The beginning value is zero.")
+            elif number_of_years <= 0:
+                st.warning("Cannot calculate CAGR: The number of years must be positive.")
+            else:
+                cagr_value = ((ending_value / beginning_value)**(1 / number_of_years)) - 1
+                st.metric(label="Compound Annual Growth Rate (CAGR)", value=f"{cagr_value:.2%}")
 
         except IndexError:
             st.error("Data for the selected year(s) or item is not available.")
@@ -647,6 +723,4 @@ st.markdown("""
 
 # Footer
 st.markdown("<div class='footer'>Dashboard by Data Science Team | Forecasting Model: Log-transformed Linear Regression | Data: Market-Based Projections for Cambodia (2025–2030)</div>", unsafe_allow_html=True)
-st.markdown("""
-This dashboard is designed to provide insights into Cambodia's digital economy, focusing on workshops, job demand, and startup trends. The data is based on market projections and aims to support strategic decisions for training, hiring, and resource allocation within the Cambodian tech landscape.
-""")
+

@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, r2_score
 import requests
+import io
 from datetime import datetime
 
 # -------------------------------

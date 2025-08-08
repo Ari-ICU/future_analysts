@@ -8,9 +8,12 @@ from sklearn.metrics import mean_absolute_error, r2_score
 import requests
 import io
 from datetime import datetime
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side, numbers
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, GradientFill
 from openpyxl.utils import get_column_letter
-import streamlit as st
+from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_00
+
 
 # -------------------------------
 # App Configuration & Professional Styling
@@ -708,108 +711,176 @@ if data_loaded:
     """, unsafe_allow_html=True)
     
     # Export functionality
-    def style_excel_sheet(writer, title="Cambodia Digital Economy Analytics Platform"):
+    def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambodia"):
         """
-        Applies professional, dynamic styling to each sheet in the Excel file.
-        Includes a title row, headers with filters, formatted data, and an export timestamp.
-        """
-        workbook = writer.book
-
-        # Define common styles
-        title_font = Font(bold=True, size=16, color="FFFFFF")
-        title_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
-        header_font = Font(bold=True, size=12, color="FFFFFF")
-        header_fill = PatternFill(start_color="2D3748", end_color="2D3748", fill_type="solid")
-        center_alignment = Alignment(horizontal="center", vertical="center")
-        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+        Apply professional styling to an Excel workbook with multiple sheets.
         
-        export_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        Args:
+            writer: pandas ExcelWriter object
+            title: Title for the Excel sheet
+        """
+        try:
+            workbook = writer.book
 
-        for sheet_name in writer.sheets:
-            worksheet = writer.sheets[sheet_name]
-            
-            # Add and style title and timestamp
-            worksheet.insert_rows(1, amount=2)
-            max_col = worksheet.max_column
+            # Define enhanced styles
+            title_font = Font(name='Calibri', bold=True, size=16, color="1A365D")
+            header_font = Font(name='Calibri', bold=True, size=12, color="FFFFFF")
+            header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
+            center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+            thin_border = Border(
+                left=Side(style='thin', color='D3D3D3'),
+                right=Side(style='thin', color='D3D3D3'),
+                top=Side(style='thin', color='D3D3D3'),
+                bottom=Side(style='thin', color='D3D3D3')
+            )
+            alternating_fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
 
-            worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
-            title_cell = worksheet.cell(row=1, column=1)
-            title_cell.value = title
-            title_cell.font = title_font
-            title_cell.fill = title_fill
-            title_cell.alignment = center_alignment
+            for sheet_name in writer.sheets:
+                worksheet = writer.sheets[sheet_name]
 
-            worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=max_col)
-            timestamp_cell = worksheet.cell(row=2, column=1)
-            timestamp_cell.value = f"Data as of: {export_time}"
-            timestamp_cell.font = Font(size=10, italic=True)
-            timestamp_cell.alignment = Alignment(horizontal="right")
+                # Insert two rows at the top for better spacing
+                worksheet.insert_rows(1, 2)
+                max_col = worksheet.max_column
 
-            # Style header row (now row 3)
-            for cell in worksheet[3]:
-                cell.font = header_font
-                cell.fill = header_fill
-                cell.alignment = center_alignment
-                cell.border = thin_border
-            
-            worksheet.auto_filter.ref = f"A3:{get_column_letter(max_col)}3"
-            worksheet.row_dimensions[3].height = 25
-
-            # Apply styling to all data cells (from row 4 onward)
-            for col_idx, column in enumerate(worksheet.columns, start=1):
-                max_length = 0
-                col_letter = get_column_letter(col_idx)
+                # Merge cells for the title
+                worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
                 
-                # Get the header text for the current column to check for "growth"
-                header_text = str(worksheet.cell(row=3, column=col_idx).value).lower()
-                
-                for cell in column:
-                    if cell.row < 4: continue
-                    
-                    # Apply data-specific formatting
-                    if isinstance(cell.value, (int, float)):
-                        # Check the header to determine if it's a growth rate
-                        if "growth" in header_text or "rate" in header_text:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                        else:
-                            cell.number_format = numbers.FORMAT_NUMBER_COMMA_SEPARATED1
-                    
+                # Title cell
+                title_cell = worksheet.cell(row=1, column=1)
+                title_cell.value = title
+                title_cell.font = title_font
+                title_cell.alignment = center_alignment
+                title_cell.fill = PatternFill(start_color="E6F3FF", end_color="E6F3FF", fill_type="solid")
+
+                # Style header row (now row 3)
+                for cell in worksheet[3]:
+                    cell.font = header_font
+                    cell.fill = header_fill
                     cell.alignment = center_alignment
                     cell.border = thin_border
-                    
-                    # Calculate max length for auto-sizing
+
+                # Add table style
+                table_ref = f"A3:{get_column_letter(max_col)}{worksheet.max_row}"
+                tab = Table(displayName=f"Table_{sheet_name}", ref=table_ref)
+                tab.tableStyleInfo = TableStyleInfo(
+                    name="TableStyleMedium2",
+                    showFirstColumn=False,
+                    showLastColumn=False,
+                    showRowStripes=True,
+                    showColumnStripes=False
+                )
+                worksheet.add_table(tab)
+
+                # Apply conditional formatting for numeric columns
+                for col in range(1, max_col + 1):
+                    col_letter = get_column_letter(col)
+                    # Check if column contains numbers
                     try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
+                        first_value = worksheet[f"{col_letter}4"].value
+                        if isinstance(first_value, (int, float)):
+                            worksheet.conditional_formatting.add(
+                                f"{col_letter}4:{col_letter}{worksheet.max_row}",
+                                {
+                                    "type": "data_bar",
+                                    "bar_color": "#63C0D0",
+                                    "showValue": True,
+                                    "minLength": 0,
+                                    "maxLength": 100
+                                }
+                            )
+                            # Apply number formatting
+                            for cell in worksheet[f"{col_letter}4:{col_letter}{worksheet.max_row}"]:
+                                cell.number_format = FORMAT_NUMBER_00 if isinstance(cell.value, int) else FORMAT_PERCENTAGE_00
                     except:
-                        pass
+                        continue
+
+                # Adjust column widths and apply formatting to data rows
+                for col in worksheet.columns:
+                    max_length = 0
+                    col_letter = get_column_letter(col[0].column)
+                    
+                    # Calculate max width
+                    for cell in col:
+                        if cell.row < 4:  # Skip title and header rows
+                            continue
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+                    
+                    # Set column width
+                    adjusted_width = min(max(10, max_length + 4), 50)  # Cap max width at 50
+                    worksheet.column_dimensions[col_letter].width = adjusted_width
+
+                    # Apply formatting to data cells
+                    for cell in col[3:]:  # Start from row 4 (data rows)
+                        cell.border = thin_border
+                        cell.alignment = center_alignment if isinstance(cell.value, (int, float)) else left_alignment
+                        # Apply alternating row colors
+                        if cell.row % 2 == 0:
+                            cell.fill = alternating_fill
+
+                # Set row heights
+                worksheet.row_dimensions[1].height = 40  # Title row
+                worksheet.row_dimensions[2].height = 10  # Spacer row
+                worksheet.row_dimensions[3].height = 25  # Header row
+
+                # Add autofilter
+                worksheet.auto_filter.ref = f"A3:{get_column_letter(max_col)}3"
+
+                # Freeze panes below header
+                worksheet.freeze_panes = worksheet['A4']
+
+                # Add worksheet protection for headers
+                worksheet.protection.sheet = True
+                worksheet.protection.autoFilter = False
+                for row in worksheet[f"A1:{get_column_letter(max_col)}3"]:
+                    for cell in row:
+                        cell.protection.locked = True
+
+            # Add a cover sheet
+            cover_sheet = workbook.create_sheet("Cover", 0)
+            cover_sheet.merge_cells('A1:C3')
+            cover_cell = cover_sheet['A1']
+            cover_cell.value = f"{title}\nGenerated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            cover_cell.font = Font(name='Calibri', size=14, bold=True)
+            cover_cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cover_sheet.row_dimensions[1].height = 60
+            for col in ['A', 'B', 'C']:
+                cover_sheet.column_dimensions[col].width = 20
+
+        except Exception as e:
+            print(f"Error styling Excel sheet: {str(e)}")
+            raise
+
+    # Usage example with Streamlit
+    def create_styled_excel(df_workshops, df_jobs, df_startups, growth_df):
+        output = io.BytesIO()
+        
+        try:
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_workshops.to_excel(writer, sheet_name='Workshops', index=False)
+                df_jobs.to_excel(writer, sheet_name='Jobs', index=False)
+                df_startups.to_excel(writer, sheet_name='Startups', index=False)
+                growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False)
                 
-                adjusted_width = max(max_length + 2, 12)
-                worksheet.column_dimensions[col_letter].width = adjusted_width
+                style_excel_sheet(writer)
+                
+            output.seek(0)
+            return output
+        
+        except Exception as e:
+            print(f"Error creating Excel file: {str(e)}")
+            raise
 
-            worksheet.row_dimensions[1].height = 40
-            worksheet.freeze_panes = 'A4'
-            
-    # Usage example with your Streamlit app
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_workshops.to_excel(writer, sheet_name='Workshops', index=False, startrow=2)
-        df_jobs.to_excel(writer, sheet_name='Jobs', index=False, startrow=2)
-        df_startups.to_excel(writer, sheet_name='Startups', index=False, startrow=2)
-        growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False, startrow=2)
-
-        style_excel_sheet(writer)
-
-    output.seek(0)
-
-    st.download_button(
-        label="📥 Download Professional Excel Report",
-        data=output,
-        file_name="cambodia_digital_economy_data.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        help="Click to download a beautifully formatted and ready-to-present Excel report."
-    )
+    # Streamlit download button
+    def create_download_button(excel_data):
+        st.download_button(
+            label="📥 Download Professional Excel Report",
+            data=excel_data,
+            file_name="cambodia_digital_economy_report.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            help="Download a professionally formatted Excel report with interactive tables and visualizations."
+        )
 
 else:
     st.error("❌ Unable to load market data. Please check your connection and try refreshing.")

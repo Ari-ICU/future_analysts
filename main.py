@@ -320,7 +320,7 @@ if data_loaded:
             <h3 style='color: white; margin: 0; font-size: 1.1rem; font-weight: 600;'>Active Startups</h3>
             <h2 style='color: white; margin: 5px 0; font-size: 2.2rem; font-weight: 700;'>{:,}</h2>
             <p style='color: rgba(255,255,255,0.8); margin: 0; font-size: 0.9rem;'>
-                <span style='color: #2ca02c;'>↗ +{:,}</span> vs last period
+                <span style='color: #4ade80;'>↗ +{:,}</span> vs last period
             </p>
         </div>
         """.format(

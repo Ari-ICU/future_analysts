@@ -314,7 +314,7 @@ if data_loaded:
     
     with col3:
         st.markdown("""
-        <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+        <div style='background: linear-gradient(135deg, #4facfe 0%, #23c4fe 100%); 
                     padding: 20px; border-radius: 15px; box-shadow: 0 8px 32px rgba(79, 172, 254, 0.3);
                     border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);'>
             <h3 style='color: white; margin: 0; font-size: 1.1rem; font-weight: 600;'>Active Startups</h3>

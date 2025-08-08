@@ -95,7 +95,7 @@ st.markdown("""
     }
     
     .data-source {
-        background-color: #f8fafc;
+        background-color: #000000;
         border-left: 4px solid #3b82f6;
         padding: 1rem;
         margin: 1rem 0;

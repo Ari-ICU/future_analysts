@@ -250,17 +250,34 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
         )
         data_style_text.protection = Protection(locked=False)
 
+        subtitle_style = NamedStyle(name="subtitle_style")
+        subtitle_style.font = Font(name='Calibri', size=12, italic=True)
+        subtitle_style.alignment = Alignment(horizontal="center", vertical="center")
+        subtitle_style.fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
+        subtitle_style.protection = Protection(locked=True)
+
+        stats_title_style = NamedStyle(name="stats_title_style")
+        stats_title_style.font = Font(name='Calibri', bold=True, size=12)
+        stats_title_style.alignment = Alignment(horizontal="left", vertical="center")
+        stats_title_style.protection = Protection(locked=True)
+
+        metadata_label_style = NamedStyle(name="metadata_label_style")
+        metadata_label_style.font = Font(name='Calibri', bold=True, size=11)
+        metadata_label_style.alignment = Alignment(horizontal="left", vertical="center")
+        metadata_label_style.protection = Protection(locked=True)
+
+        metadata_value_style = NamedStyle(name="metadata_value_style")
+        metadata_value_style.font = Font(name='Calibri', size=11)
+        metadata_value_style.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        metadata_value_style.protection = Protection(locked=True)
+
         alternating_fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
 
         # Register named styles
-        if "title_style" not in workbook.named_styles:
-            workbook.add_named_style(title_style)
-        if "header_style" not in workbook.named_styles:
-            workbook.add_named_style(header_style)
-        if "data_style_numeric" not in workbook.named_styles:
-            workbook.add_named_style(data_style_numeric)
-        if "data_style_text" not in workbook.named_styles:
-            workbook.add_named_style(data_style_text)
+        for style in [title_style, header_style, data_style_numeric, data_style_text, 
+                      subtitle_style, stats_title_style, metadata_label_style, metadata_value_style]:
+            if style.name not in workbook.named_styles:
+                workbook.add_named_style(style)
 
         for sheet_name in writer.sheets:
             worksheet = writer.sheets[sheet_name]
@@ -281,11 +298,7 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             # Subtitle cell
             subtitle_cell = worksheet.cell(row=2, column=1)
             subtitle_cell.value = f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            subtitle_cell.font = Font(name='Calibri', size=12, italic=True)
-            subtitle_cell.alignment = Alignment(horizontal="center", vertical="center")
-            subtitle_cell.fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
-            subtitle_cell.style = copy(subtitle_cell.style)
-            subtitle_cell.style.protection = Protection(locked=True)
+            subtitle_cell.style = subtitle_style
 
             # Style header row (now row 4)
             for cell in worksheet[4]:
@@ -294,20 +307,16 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             # Add summary statistics at the bottom
             last_row = worksheet.max_row
             worksheet.cell(row=last_row + 2, column=1).value = "Summary Statistics"
-            worksheet.cell(row=last_row + 2, column=1).font = Font(name='Calibri', bold=True, size=12)
             worksheet.merge_cells(start_row=last_row + 2, start_column=1, end_row=last_row + 2, end_column=2)
             stats_title_cell = worksheet.cell(row=last_row + 2, column=1)
-            stats_title_cell.style = copy(stats_title_cell.style)
-            stats_title_cell.style.protection = Protection(locked=True)
+            stats_title_cell.style = stats_title_style
 
             # Calculate and add statistics
             stats = ["Average", "Maximum", "Minimum", "Growth Rate"]
             for i, stat in enumerate(stats, start=last_row + 3):
-                worksheet.cell(row=i, column=1).value = stat
-                worksheet.cell(row=i, column=1).font = Font(name='Calibri', bold=True, size=11)
                 stat_label_cell = worksheet.cell(row=i, column=1)
-                stat_label_cell.style = copy(stat_label_cell.style)
-                stat_label_cell.style.protection = Protection(locked=True)
+                stat_label_cell.value = stat
+                stat_label_cell.style = metadata_label_style
                 for col in range(2, max_col + 1):
                     col_letter = get_column_letter(col)
                     data_range = f"{col_letter}5:{col_letter}{last_row}"
@@ -429,8 +438,7 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             type="linear",
             degree=45
         )
-        cover_cell.style = copy(cover_cell.style)
-        cover_cell.style.protection = Protection(locked=True)
+        cover_cell.style = title_style
         cover_sheet.row_dimensions[1].height = 120
         for col in ['A', 'B', 'C', 'D', 'E']:
             cover_sheet.column_dimensions[col].width = 20
@@ -446,13 +454,9 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
         ]
         for i, (key, value) in enumerate(metadata, start=1):
             metadata_sheet[f"A{i}"].value = key
-            metadata_sheet[f"A{i}"].font = Font(name='Calibri', bold=True, size=11)
+            metadata_sheet[f"A{i}"].style = metadata_label_style
             metadata_sheet[f"B{i}"].value = value
-            metadata_sheet[f"B{i}"].alignment = Alignment(wrap_text=True)
-            metadata_sheet[f"A{i}"].style = copy(metadata_sheet[f"A{i}"].style)
-            metadata_sheet[f"A{i}"].style.protection = Protection(locked=True)
-            metadata_sheet[f"B{i}"].style = copy(metadata_sheet[f"B{i}"].style)
-            metadata_sheet[f"B{i}"].style.protection = Protection(locked=True)
+            metadata_sheet[f"B{i}"].style = metadata_value_style
             metadata_sheet.column_dimensions['A'].width = 20
             metadata_sheet.column_dimensions['B'].width = 60
 

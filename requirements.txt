@@ -1,0 +1,8 @@
+pandas>=1.5
+numpy
+prophet==1.1.4
+streamlit
+matplotlib
+joblib
+pyyaml
+plotly

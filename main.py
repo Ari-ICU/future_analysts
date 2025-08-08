@@ -161,9 +161,9 @@ def load_real_market_data():
     }
     
     # Base values calibrated to Cambodia's market size
-    base_workshops = {k: np.random.randint(150, 400) for k in real_growth_rates_workshops.keys()}
-    base_jobs = {k: np.random.randint(200, 600) for k in real_growth_rates_jobs.keys()}
-    base_startups = {k: np.random.randint(25, 80) for k in real_growth_rates_startups.keys()}
+    base_workshops = {k: np.random.randint(100, 100) for k in real_growth_rates_workshops.keys()}
+    base_jobs = {k: np.random.randint(100, 100) for k in real_growth_rates_jobs.keys()}
+    base_startups = {k: np.random.randint(100, 100) for k in real_growth_rates_startups.keys()}
     
     return (real_growth_rates_workshops, real_growth_rates_jobs, real_growth_rates_startups,
             base_workshops, base_jobs, base_startups)

@@ -122,42 +122,42 @@ def load_real_market_data():
     # Real growth rates based on actual market research and reports
     # Sources: World Bank, ADB, McKinsey Digital Economy Reports, ASEAN Digital Reports
     real_growth_rates_workshops = {
-        'Digital Marketing & E-commerce': 24.5,  # High e-commerce growth in SEA
-        'Cybersecurity Training': 28.3,         # Critical need post-COVID
-        'Cloud Computing': 31.2,               # Enterprise digital transformation
-        'Full-Stack Development': 22.8,        # Sustained demand
-        'Data Science & Analytics': 26.7,      # Data-driven decision making
-        'Blockchain & DeFi': 42.1,            # Crypto adoption in SEA
-        'AI & Machine Learning': 38.9,         # AI revolution
-        'Mobile App Development': 19.4,        # Mobile-first market
-        'DevOps & Infrastructure': 25.1,       # Automation demand
-        'Digital Product Design': 21.6         # UX/UI importance
+        'Digital Marketing & E-commerce': 0,  # High e-commerce growth in SEA
+        'Cybersecurity Training': 0,         # Critical need post-COVID
+        'Cloud Computing': 0,               # Enterprise digital transformation
+        'Full-Stack Development': 0,        # Sustained demand
+        'Data Science & Analytics': 0,      # Data-driven decision making
+        'Blockchain & DeFi': 0,            # Crypto adoption in SEA
+        'AI & Machine Learning': 0,         # AI revolution
+        'Mobile App Development': 0,        # Mobile-first market
+        'DevOps & Infrastructure': 0,       # Automation demand
+        'Digital Product Design': 0        # UX/UI importance
     }
     
     real_growth_rates_jobs = {
-        'AI/ML Engineer': 45.2,               # Highest demand skill
-        'Cybersecurity Analyst': 32.8,        # Security-first approach
-        'Cloud Solutions Architect': 29.4,    # Multi-cloud strategies
-        'Full-Stack Developer': 26.1,         # Versatile developers
-        'Data Scientist': 28.7,               # Data analytics boom
-        'Blockchain Developer': 41.3,         # DeFi and Web3
-        'Product Manager (Tech)': 24.9,       # Product-led growth
-        'DevOps Engineer': 27.5,              # CI/CD practices
-        'Mobile Developer': 22.3,             # App economy
-        'UX/UI Designer': 20.8                # Design thinking
+        'AI/ML Engineer': 0,               # Highest demand skill
+        'Cybersecurity Analyst': 0,        # Security-first approach
+        'Cloud Solutions Architect': 0,    # Multi-cloud strategies
+        'Full-Stack Developer': 0,         # Versatile developers
+        'Data Scientist': 0,               # Data analytics boom
+        'Blockchain Developer': 0,         # DeFi and Web3
+        'Product Manager (Tech)': 0,       # Product-led growth
+        'DevOps Engineer': 0,              # CI/CD practices
+        'Mobile Developer': 0,             # App economy
+        'UX/UI Designer': 0                # Design thinking
     }
     
     real_growth_rates_startups = {
-        'Fintech & Digital Banking': 36.4,    # Financial inclusion
-        'E-commerce & Marketplaces': 28.2,    # Online retail boom
-        'EdTech & Online Learning': 31.7,     # Remote education
-        'HealthTech & Telemedicine': 29.8,    # Healthcare digitization
-        'AgriTech & Smart Farming': 25.4,     # Agricultural innovation
-        'PropTech & Real Estate': 22.9,       # Property digitization
-        'LogisTech & Supply Chain': 26.8,     # Last-mile delivery
-        'CleanTech & Sustainability': 33.1,   # ESG focus
-        'Gaming & Entertainment': 24.6,       # Mobile gaming
-        'AI/ML Startups': 44.7                # AI-first companies
+        'Fintech & Digital Banking': 0,    # Financial inclusion
+        'E-commerce & Marketplaces': 0,    # Online retail boom
+        'EdTech & Online Learning': 0,     # Remote education
+        'HealthTech & Telemedicine': 0,    # Healthcare digitization
+        'AgriTech & Smart Farming': 0,     # Agricultural innovation
+        'PropTech & Real Estate': 0,       # Property digitization
+        'LogisTech & Supply Chain': 0,     # Last-mile delivery
+        'CleanTech & Sustainability': 0,   # ESG focus
+        'Gaming & Entertainment': 0,       # Mobile gaming
+        'AI/ML Startups': 0                # AI-first companies
     }
     
     # Base values calibrated to Cambodia's market size

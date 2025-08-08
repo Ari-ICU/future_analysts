@@ -705,15 +705,26 @@ if data_loaded:
     
     # Export functionality
     st.markdown("---")
-    if st.button("📥 Export Dashboard Data"):
-        # Create Excel file with multiple sheets
-        with pd.ExcelWriter('cambodia_digital_economy_data.xlsx', engine='openpyxl') as writer:
-            df_workshops.to_excel(writer, sheet_name='Workshops', index=False)
-            df_jobs.to_excel(writer, sheet_name='Jobs', index=False) 
-            df_startups.to_excel(writer, sheet_name='Startups', index=False)
-            growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False)
-        
-        st.success("✅ Data exported successfully! Check your downloads folder.")
+
+    # Use a BytesIO object to create the Excel file in memory
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_workshops.to_excel(writer, sheet_name='Workshops', index=False)
+        df_jobs.to_excel(writer, sheet_name='Jobs', index=False) 
+        df_startups.to_excel(writer, sheet_name='Startups', index=False)
+        growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False)
+
+    # Rewind the buffer to the beginning
+    output.seek(0)
+
+    # Create a download button for the user
+    st.download_button(
+        label="📥 Download Dashboard Data as Excel",
+        data=output,
+        file_name="cambodia_digital_economy_data.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        help="Click to download all dashboard data in a multi-sheet Excel file."
+    )
 
 else:
     st.error("❌ Unable to load market data. Please check your connection and try refreshing.")

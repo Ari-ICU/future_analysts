@@ -273,24 +273,77 @@ if data_loaded:
     st.title("🇰🇭 Cambodia Digital Economy Analytics Platform")
     
     col1, col2, col3, col4 = st.columns(4)
+    custome_colors = {
+        "Workshops": "#1f77b4",
+        "Jobs": "#2ca02c",
+        "Startups": "#9467bd",
+        "Growth Rate": "#ff7f0e"
+    }
     
     with col1:
-        total_workshops = df_workshops.iloc[-1, 1:].sum()
-        st.metric("Total Workshop Capacity", f"{total_workshops:,}", delta=f"+{int(total_workshops * 0.25):,}")
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 20px; border-radius: 15px; box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);'>
+            <h3 style='color: white; margin: 0; font-size: 1.1rem; font-weight: 600;'>Total Workshop Capacity</h3>
+            <h2 style='color: white; margin: 5px 0; font-size: 2.2rem; font-weight: 700;'>{:,}</h2>
+            <p style='color: rgba(255,255,255,0.8); margin: 0; font-size: 0.9rem;'>
+                <span style='color: #4ade80;'>↗ +{:,}</span> vs last period
+            </p>
+        </div>
+        """.format(
+            df_workshops.iloc[-1, 1:].sum(),
+            int(df_workshops.iloc[-1, 1:].sum() * 0.25)
+        ), unsafe_allow_html=True)
     
     with col2:
-        total_jobs = df_jobs.iloc[-1, 1:].sum()
-        st.metric("Projected Jobs", f"{total_jobs:,}", delta=f"+{int(total_jobs * 0.22):,}")
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                    padding: 20px; border-radius: 15px; box-shadow: 0 8px 32px rgba(240, 147, 251, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);'>
+            <h3 style='color: white; margin: 0; font-size: 1.1rem; font-weight: 600;'>Projected Jobs</h3>
+            <h2 style='color: white; margin: 5px 0; font-size: 2.2rem; font-weight: 700;'>{:,}</h2>
+            <p style='color: rgba(255,255,255,0.8); margin: 0; font-size: 0.9rem;'>
+                <span style='color: #4ade80;'>↗ +{:,}</span> vs last period
+            </p>
+        </div>
+        """.format(
+            df_jobs.iloc[-1, 1:].sum(),
+            int(df_jobs.iloc[-1, 1:].sum() * 0.22)
+        ), unsafe_allow_html=True)
     
     with col3:
-        total_startups = df_startups.iloc[-1, 1:].sum()
-        st.metric("Active Startups", f"{total_startups:,}", delta=f"+{int(total_startups * 0.31):,}")
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); 
+                    padding: 20px; border-radius: 15px; box-shadow: 0 8px 32px rgba(79, 172, 254, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);'>
+            <h3 style='color: white; margin: 0; font-size: 1.1rem; font-weight: 600;'>Active Startups</h3>
+            <h2 style='color: white; margin: 5px 0; font-size: 2.2rem; font-weight: 700;'>{:,}</h2>
+            <p style='color: rgba(255,255,255,0.8); margin: 0; font-size: 0.9rem;'>
+                <span style='color: #4ade80;'>↗ +{:,}</span> vs last period
+            </p>
+        </div>
+        """.format(
+            df_startups.iloc[-1, 1:].sum(),
+            int(df_startups.iloc[-1, 1:].sum() * 0.31)
+        ), unsafe_allow_html=True)
     
     with col4:
         avg_growth = np.mean(list(growth_rates_workshops.values()) + 
                            list(growth_rates_jobs.values()) + 
                            list(growth_rates_startups.values()))
-        st.metric("Avg Growth Rate", f"{avg_growth:.1f}%", delta="Market Leading")
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); 
+                    padding: 20px; border-radius: 15px; box-shadow: 0 8px 32px rgba(250, 112, 154, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);'>
+            <h3 style='color: white; margin: 0; font-size: 1.1rem; font-weight: 600;'>Avg Growth Rate</h3>
+            <h2 style='color: white; margin: 5px 0; font-size: 2.2rem; font-weight: 700;'>{:.1f}%</h2>
+            <p style='color: rgba(255,255,255,0.8); margin: 0; font-size: 0.9rem;'>
+                <span style='color: #4ade80;'>🏆</span> Market Leading
+            </p>
+        </div>
+        """.format(avg_growth), unsafe_allow_html=True)
+    
     
     st.markdown("---")
     

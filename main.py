@@ -12,8 +12,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, GradientFill, NamedStyle
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
-from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_COMMA_SEPARATED1, FORMAT_DATE_DDMMYY
-from openpyxl.worksheet.filters import FilterColumn, AutoFilter
+from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_COMMA_SEPARATED1
+from openpyxl.worksheet.filters import FilterColumn, Filters
 
 # -------------------------------
 # App Configuration & Professional Styling
@@ -125,8 +125,6 @@ st.markdown("""
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def load_real_market_data():
     """Load real market data for workshops, jobs, and startups."""
-    # Real growth rates based on actual market research and reports
-    # Sources: World Bank, ADB, McKinsey Digital Economy Reports, ASEAN Digital Reports
     real_growth_rates_workshops = {
         'Digital Marketing & E-commerce': 24.5,
         'Cybersecurity Training': 28.3,
@@ -166,7 +164,6 @@ def load_real_market_data():
         'AI/ML Startups': 44.7
     }
     
-    # Base values calibrated to Cambodia's market size
     base_workshops = {k: np.random.randint(100, 200) for k in real_growth_rates_workshops.keys()}
     base_jobs = {k: np.random.randint(100, 200) for k in real_growth_rates_jobs.keys()}
     base_startups = {k: np.random.randint(100, 200) for k in real_growth_rates_startups.keys()}
@@ -188,10 +185,10 @@ def generate_realistic_data(growth_rates, start_values, years_range=range(2020, 
             if i == 0:
                 values.append(int(current_value))
             else:
-                variance = np.random.normal(1.0, 0.05)  # 5% standard deviation
+                variance = np.random.normal(1.0, 0.05)
                 growth_factor = (1 + rate/100) * variance
                 current_value = current_value * growth_factor
-                values.append(int(max(current_value, 1)))  # Ensure positive values
+                values.append(int(max(current_value, 1)))
         
         data[item] = values
     
@@ -366,18 +363,15 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
                 max_length = 0
                 col_letter = get_column_letter(col[0].column)
                 
-                # Calculate max width
                 for cell in col:
-                    if cell.row < 5:  # Skip title, subtitle, and header rows
+                    if cell.row < 5:
                         continue
                     if cell.value:
                         max_length = max(max_length, len(str(cell.value)))
                 
-                # Set column width
                 adjusted_width = min(max(10, max_length + 6), 40)
                 worksheet.column_dimensions[col_letter].width = adjusted_width
 
-                # Apply formatting to data cells
                 for cell in col[4:last_row]:
                     cell.style = data_style_numeric if isinstance(cell.value, (int, float)) else data_style_text
                     if cell.row % 2 == 0:
@@ -389,17 +383,18 @@ def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambod
             worksheet.row_dimensions[3].height = 15
             worksheet.row_dimensions[4].height = 30
 
-            # Add autofilter with custom filter for Year column
+            # Add autofilter with proper Filters object
             worksheet.auto_filter.ref = f"A4:{get_column_letter(max_col)}4"
             auto_filter = worksheet.auto_filter
-            filter_col = FilterColumn(colId=0)
-            filter_col.filters = {"blank": False}
+            filter_col = FilterColumn(colId=0)  # Year column
+            filters = Filters(blank=False)  # Correctly instantiate Filters object
+            filter_col.filters = filters
             auto_filter.filterColumn.append(filter_col)
 
             # Freeze panes below header
             worksheet.freeze_panes = worksheet['A5']
 
-            # Add worksheet protection for headers and title
+            # Add worksheet protection
             worksheet.protection.sheet = True
             worksheet.protection.autoFilter = False
             for row in worksheet[f"A1:{get_column_letter(max_col)}4"]:
@@ -488,19 +483,16 @@ def create_download_button(excel_data):
 st.sidebar.title("📊 Dashboard Controls")
 st.sidebar.markdown("---")
 
-# Data refresh button
 if st.sidebar.button("🔄 Refresh Data", help="Get latest market data"):
     st.cache_data.clear()
     st.rerun()
 
-# Analysis period selector
 analysis_period = st.sidebar.selectbox(
     "📅 Analysis Period",
     ["2020-2030 (Full Historical)", "2025-2030 (Forecast Focus)", "2020-2025 (Historical Only)"],
     index=1
 )
 
-# Growth rate adjustment
 st.sidebar.subheader("⚙️ Growth Rate Adjustments")
 market_sentiment = st.sidebar.slider(
     "Market Optimism Factor",
@@ -515,7 +507,6 @@ economic_impact = st.sidebar.selectbox(
     help="Select economic outlook for projections"
 )
 
-# Scenario adjustments
 scenario_multipliers = {
     "Optimistic": 1.15,
     "Base Case": 1.0,
@@ -529,14 +520,12 @@ try:
     (growth_rates_workshops, growth_rates_jobs, growth_rates_startups,
      base_workshops, base_jobs, base_startups) = load_real_market_data()
     
-    # Apply user adjustments
     adjusted_multiplier = market_sentiment * scenario_multipliers[economic_impact]
     
     growth_rates_workshops = {k: v * adjusted_multiplier for k, v in growth_rates_workshops.items()}
     growth_rates_jobs = {k: v * adjusted_multiplier for k, v in growth_rates_jobs.items()}
     growth_rates_startups = {k: v * adjusted_multiplier for k, v in growth_rates_startups.items()}
     
-    # Generate data based on selected period
     if analysis_period == "2020-2030 (Full Historical)":
         years = range(2020, 2031)
     elif analysis_period == "2025-2030 (Forecast Focus)":
@@ -548,7 +537,6 @@ try:
     df_jobs = generate_realistic_data(growth_rates_jobs, base_jobs, years)
     df_startups = generate_realistic_data(growth_rates_startups, base_startups, years)
     
-    # Create growth rates DataFrame
     all_growth_rates = []
     for category, rates in [("Workshops", growth_rates_workshops), 
                            ("Jobs", growth_rates_jobs), 
@@ -574,7 +562,6 @@ except Exception as e:
 if data_loaded:
     st.title("🇰🇭 Cambodia Digital Economy Analytics Platform")
     
-    # Metrics
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -643,7 +630,6 @@ if data_loaded:
     
     st.markdown("---")
     
-    # Data Sources
     with st.expander("📚 Data Sources & Methodology", expanded=False):
         st.markdown("""
         <div class="data-source">
@@ -664,7 +650,6 @@ if data_loaded:
         </div>
         """, unsafe_allow_html=True)
     
-    # Tabbed interface
     tab1, tab2, tab3, tab4 = st.tabs(["📈 Workshops", "💼 Jobs", "🚀 Startups", "🔮 Predictions"])
     
     with tab1:
@@ -834,19 +819,17 @@ if data_loaded:
                 key="confidence"
             )
         
-        # Machine Learning Prediction
         if selected_item:
             try:
                 X = df_selected['Year'].values.reshape(-1, 1)
                 y = df_selected[selected_item].values
                 
-                # Polynomial model
                 poly_model = Pipeline([
                     ('poly', PolynomialFeatures(degree=2)),
                     ('linear', LinearRegression())
                 ])
                 
-                poly_model.fit(X, np.log1p(y))  # Use log1p for numerical stability
+                poly_model.fit(X, np.log1p(y))
                 
                 future_years = np.arange(
                     df_selected['Year'].max() + 1, 
@@ -926,7 +909,6 @@ if data_loaded:
             except Exception as e:
                 st.error(f"Error in prediction: {str(e)}")
     
-    # Comparative Growth Analysis
     st.markdown("---")
     st.subheader("📊 Comparative Growth Rate Analysis")
     
@@ -954,7 +936,6 @@ if data_loaded:
     
     st.plotly_chart(fig_growth, use_container_width=True)
     
-    # Strategic Insights
     st.markdown("""
     <div class="insight-box">
     <h3>🎯 Strategic Insights & Recommendations</h3>
@@ -968,13 +949,11 @@ if data_loaded:
     </div>
     """, unsafe_allow_html=True)
     
-    # Export Button
     st.markdown("---")
     st.subheader("📥 Export Data")
     excel_data = create_styled_excel(df_workshops, df_jobs, df_startups, growth_df)
     create_download_button(excel_data)
 
-# Footer
 st.markdown("""
     <div style='text-align: center; color: #666; margin-top: 3rem; padding: 2rem; border-top: 1px solid #eee;'>
         <p><strong>Cambodia Digital Economy Analytics Platform</strong></p>

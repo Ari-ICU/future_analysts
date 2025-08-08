@@ -4,16 +4,16 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, r2_score
-import requests
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import Pipeline
 import io
 from datetime import datetime
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, GradientFill
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, GradientFill, NamedStyle
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
-from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_00
-
+from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_COMMA_SEPARATED1, FORMAT_DATE_DDMMYY
+from openpyxl.worksheet.filters import FilterColumn, AutoFilter
 
 # -------------------------------
 # App Configuration & Professional Styling
@@ -74,7 +74,7 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
-    .sidebar .stSelectbox {
+    .sidebar .stSelectbox, .sidebar .stSlider, .sidebar .stButton {
         margin-bottom: 1rem;
     }
     
@@ -102,7 +102,7 @@ st.markdown("""
     }
     
     .data-source {
-        background-color: #000000;
+        background-color: #ffffff;
         border-left: 4px solid #3b82f6;
         padding: 1rem;
         margin: 1rem 0;
@@ -124,47 +124,46 @@ st.markdown("""
 # -------------------------------
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def load_real_market_data():
-    """Load real market data from various sources"""
-    
+    """Load real market data for workshops, jobs, and startups."""
     # Real growth rates based on actual market research and reports
     # Sources: World Bank, ADB, McKinsey Digital Economy Reports, ASEAN Digital Reports
     real_growth_rates_workshops = {
-        'Digital Marketing & E-commerce': 24.5,  # High e-commerce growth in SEA
-        'Cybersecurity Training': 28.3,         # Critical need post-COVID
-        'Cloud Computing': 31.2,               # Enterprise digital transformation
-        'Full-Stack Development': 22.8,        # Sustained demand
-        'Data Science & Analytics': 26.7,      # Data-driven decision making
-        'Blockchain & DeFi': 42.1,            # Crypto adoption in SEA
-        'AI & Machine Learning': 38.9,         # AI revolution
-        'Mobile App Development': 19.4,        # Mobile-first market
-        'DevOps & Infrastructure': 25.1,       # Automation demand
-        'Digital Product Design': 21.6         # UX/UI importance
+        'Digital Marketing & E-commerce': 24.5,
+        'Cybersecurity Training': 28.3,
+        'Cloud Computing': 31.2,
+        'Full-Stack Development': 22.8,
+        'Data Science & Analytics': 26.7,
+        'Blockchain & DeFi': 42.1,
+        'AI & Machine Learning': 38.9,
+        'Mobile App Development': 19.4,
+        'DevOps & Infrastructure': 25.1,
+        'Digital Product Design': 21.6
     }
     
     real_growth_rates_jobs = {
-        'AI/ML Engineer': 45.2,               # Highest demand skill
-        'Cybersecurity Analyst': 32.8,        # Security-first approach
-        'Cloud Solutions Architect': 29.4,    # Multi-cloud strategies
-        'Full-Stack Developer': 26.1,         # Versatile developers
-        'Data Scientist': 28.7,               # Data analytics boom
-        'Blockchain Developer': 41.3,         # DeFi and Web3
-        'Product Manager (Tech)': 24.9,       # Product-led growth
-        'DevOps Engineer': 27.5,              # CI/CD practices
-        'Mobile Developer': 22.3,             # App economy
-        'UX/UI Designer': 20.8                # Design thinking
+        'AI/ML Engineer': 45.2,
+        'Cybersecurity Analyst': 32.8,
+        'Cloud Solutions Architect': 29.4,
+        'Full-Stack Developer': 26.1,
+        'Data Scientist': 28.7,
+        'Blockchain Developer': 41.3,
+        'Product Manager (Tech)': 24.9,
+        'DevOps Engineer': 27.5,
+        'Mobile Developer': 22.3,
+        'UX/UI Designer': 20.8
     }
     
     real_growth_rates_startups = {
-        'Fintech & Digital Banking': 36.4,    # Financial inclusion
-        'E-commerce & Marketplaces': 28.2,    # Online retail boom
-        'EdTech & Online Learning': 31.7,     # Remote education
-        'HealthTech & Telemedicine': 29.8,    # Healthcare digitization
-        'AgriTech & Smart Farming': 25.4,     # Agricultural innovation
-        'PropTech & Real Estate': 22.9,       # Property digitization
-        'LogisTech & Supply Chain': 26.8,     # Last-mile delivery
-        'CleanTech & Sustainability': 33.1,   # ESG focus
-        'Gaming & Entertainment': 24.6,       # Mobile gaming
-        'AI/ML Startups': 44.7                # AI-first companies
+        'Fintech & Digital Banking': 36.4,
+        'E-commerce & Marketplaces': 28.2,
+        'EdTech & Online Learning': 31.7,
+        'HealthTech & Telemedicine': 29.8,
+        'AgriTech & Smart Farming': 25.4,
+        'PropTech & Real Estate': 22.9,
+        'LogisTech & Supply Chain': 26.8,
+        'CleanTech & Sustainability': 33.1,
+        'Gaming & Entertainment': 24.6,
+        'AI/ML Startups': 44.7
     }
     
     # Base values calibrated to Cambodia's market size
@@ -177,7 +176,7 @@ def load_real_market_data():
 
 @st.cache_data
 def generate_realistic_data(growth_rates, start_values, years_range=range(2020, 2031)):
-    """Generate realistic data with some variance"""
+    """Generate realistic data with variance for given growth rates and years."""
     data = {'Year': list(years_range)}
     
     for item, rate in growth_rates.items():
@@ -186,11 +185,9 @@ def generate_realistic_data(growth_rates, start_values, years_range=range(2020, 
         current_value = start_value
         
         for i, year in enumerate(years_range):
-            # Add some realistic variance (±5% random variation)
             if i == 0:
                 values.append(int(current_value))
             else:
-                # Apply growth rate with small random variation
                 variance = np.random.normal(1.0, 0.05)  # 5% standard deviation
                 growth_factor = (1 + rate/100) * variance
                 current_value = current_value * growth_factor
@@ -199,6 +196,291 @@ def generate_realistic_data(growth_rates, start_values, years_range=range(2020, 
         data[item] = values
     
     return pd.DataFrame(data)
+
+# -------------------------------
+# Excel Styling Function
+# -------------------------------
+def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambodia"):
+    """
+    Apply professional styling to an Excel workbook with multiple sheets, including a cover sheet,
+    summary statistics, and advanced conditional formatting.
+
+    Args:
+        writer: pandas ExcelWriter object
+        title: Title for the Excel sheet
+    """
+    try:
+        workbook = writer.book
+
+        # Define enhanced styles
+        title_style = NamedStyle(name="title_style")
+        title_style.font = Font(name='Calibri', bold=True, size=16, color="1A365D")
+        title_style.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        title_style.fill = PatternFill(start_color="E6F3FF", end_color="E6F3FF", fill_type="solid")
+
+        header_style = NamedStyle(name="header_style")
+        header_style.font = Font(name='Calibri', bold=True, size=12, color="FFFFFF")
+        header_style.fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
+        header_style.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        header_style.border = Border(
+            left=Side(style='thin', color='D3D3D3'),
+            right=Side(style='thin', color='D3D3D3'),
+            top=Side(style='thin', color='D3D3D3'),
+            bottom=Side(style='thin', color='D3D3D3')
+        )
+
+        data_style_numeric = NamedStyle(name="data_style_numeric")
+        data_style_numeric.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        data_style_numeric.border = Border(
+            left=Side(style='thin', color='D3D3D3'),
+            right=Side(style='thin', color='D3D3D3'),
+            top=Side(style='thin', color='D3D3D3'),
+            bottom=Side(style='thin', color='D3D3D3')
+        )
+        data_style_numeric.number_format = FORMAT_NUMBER_COMMA_SEPARATED1
+
+        data_style_text = NamedStyle(name="data_style_text")
+        data_style_text.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        data_style_text.border = Border(
+            left=Side(style='thin', color='D3D3D3'),
+            right=Side(style='thin', color='D3D3D3'),
+            top=Side(style='thin', color='D3D3D3'),
+            bottom=Side(style='thin', color='D3D3D3')
+        )
+
+        alternating_fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
+
+        # Register named styles
+        if "title_style" not in workbook.named_styles:
+            workbook.add_named_style(title_style)
+        if "header_style" not in workbook.named_styles:
+            workbook.add_named_style(header_style)
+        if "data_style_numeric" not in workbook.named_styles:
+            workbook.add_named_style(data_style_numeric)
+        if "data_style_text" not in workbook.named_styles:
+            workbook.add_named_style(data_style_text)
+
+        for sheet_name in writer.sheets:
+            worksheet = writer.sheets[sheet_name]
+
+            # Insert three rows at the top for title, subtitle, and spacing
+            worksheet.insert_rows(1, 3)
+            max_col = worksheet.max_column
+
+            # Merge cells for title and subtitle
+            worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
+            worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=max_col)
+
+            # Title cell
+            title_cell = worksheet.cell(row=1, column=1)
+            title_cell.value = title
+            title_cell.style = title_style
+
+            # Subtitle cell
+            subtitle_cell = worksheet.cell(row=2, column=1)
+            subtitle_cell.value = f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            subtitle_cell.font = Font(name='Calibri', size=12, italic=True)
+            subtitle_cell.alignment = Alignment(horizontal="center", vertical="center")
+            subtitle_cell.fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
+
+            # Style header row (now row 4)
+            for cell in worksheet[4]:
+                cell.style = header_style
+
+            # Add summary statistics at the bottom
+            last_row = worksheet.max_row
+            worksheet.cell(row=last_row + 2, column=1).value = "Summary Statistics"
+            worksheet.cell(row=last_row + 2, column=1).font = Font(name='Calibri', bold=True, size=12)
+            worksheet.merge_cells(start_row=last_row + 2, start_column=1, end_row=last_row + 2, end_column=2)
+
+            # Calculate and add statistics
+            stats = ["Average", "Maximum", "Minimum", "Growth Rate"]
+            for i, stat in enumerate(stats, start=last_row + 3):
+                worksheet.cell(row=i, column=1).value = stat
+                worksheet.cell(row=i, column=1).font = Font(name='Calibri', bold=True, size=11)
+                for col in range(2, max_col + 1):
+                    col_letter = get_column_letter(col)
+                    data_range = f"{col_letter}5:{col_letter}{last_row}"
+                    if stat == "Average":
+                        worksheet.cell(row=i, column=col).value = f"=AVERAGE({data_range})"
+                    elif stat == "Maximum":
+                        worksheet.cell(row=i, column=col).value = f"=MAX({data_range})"
+                    elif stat == "Minimum":
+                        worksheet.cell(row=i, column=col).value = f"=MIN({data_range})"
+                    elif stat == "Growth Rate":
+                        first_value = worksheet[f"{col_letter}5"].value
+                        last_value = worksheet[f"{col_letter}{last_row}"].value
+                        if isinstance(first_value, (int, float)) and isinstance(last_value, (int, float)) and first_value != 0:
+                            years = last_row - 5
+                            cagr = ((last_value / first_value) ** (1 / years) - 1) if years > 0 else 0
+                            worksheet.cell(row=i, column=col).value = cagr
+                            worksheet.cell(row=i, column=col).number_format = FORMAT_PERCENTAGE_00
+                    worksheet.cell(row=i, column=col).style = data_style_numeric
+
+            # Add table style
+            table_ref = f"A4:{get_column_letter(max_col)}{last_row}"
+            tab = Table(displayName=f"Table_{sheet_name.replace(' ', '_')}", ref=table_ref)
+            tab.tableStyleInfo = TableStyleInfo(
+                name="TableStyleMedium9",
+                showFirstColumn=False,
+                showLastColumn=False,
+                showRowStripes=True,
+                showColumnStripes=False
+            )
+            worksheet.add_table(tab)
+
+            # Apply advanced conditional formatting for numeric columns
+            for col in range(2, max_col + 1):  # Skip Year column
+                col_letter = get_column_letter(col)
+                try:
+                    first_value = worksheet[f"{col_letter}5"].value
+                    if isinstance(first_value, (int, float)):
+                        # Data bars
+                        worksheet.conditional_formatting.add(
+                            f"{col_letter}5:{col_letter}{last_row}",
+                            {
+                                "type": "data_bar",
+                                "bar_color": "#63C0D0",
+                                "showValue": True,
+                                "minLength": 0,
+                                "maxLength": 100
+                            }
+                        )
+                        # Color scale for high/low values
+                        worksheet.conditional_formatting.add(
+                            f"{col_letter}5:{col_letter}{last_row}",
+                            {
+                                "type": "color_scale",
+                                "color_scale_rules": [
+                                    {"type": "min", "color": "FF6347"},
+                                    {"type": "percentile", "value": "50", "color": "FFFF99"},
+                                    {"type": "max", "color": "63C0D0"}
+                                ]
+                            }
+                        )
+                except:
+                    continue
+
+            # Adjust column widths and apply formatting to data rows
+            for col in worksheet.columns:
+                max_length = 0
+                col_letter = get_column_letter(col[0].column)
+                
+                # Calculate max width
+                for cell in col:
+                    if cell.row < 5:  # Skip title, subtitle, and header rows
+                        continue
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                
+                # Set column width
+                adjusted_width = min(max(10, max_length + 6), 40)
+                worksheet.column_dimensions[col_letter].width = adjusted_width
+
+                # Apply formatting to data cells
+                for cell in col[4:last_row]:
+                    cell.style = data_style_numeric if isinstance(cell.value, (int, float)) else data_style_text
+                    if cell.row % 2 == 0:
+                        cell.fill = alternating_fill
+
+            # Set row heights
+            worksheet.row_dimensions[1].height = 45
+            worksheet.row_dimensions[2].height = 25
+            worksheet.row_dimensions[3].height = 15
+            worksheet.row_dimensions[4].height = 30
+
+            # Add autofilter with custom filter for Year column
+            worksheet.auto_filter.ref = f"A4:{get_column_letter(max_col)}4"
+            auto_filter = worksheet.auto_filter
+            filter_col = FilterColumn(colId=0)
+            filter_col.filters = {"blank": False}
+            auto_filter.filterColumn.append(filter_col)
+
+            # Freeze panes below header
+            worksheet.freeze_panes = worksheet['A5']
+
+            # Add worksheet protection for headers and title
+            worksheet.protection.sheet = True
+            worksheet.protection.autoFilter = False
+            for row in worksheet[f"A1:{get_column_letter(max_col)}4"]:
+                for cell in row:
+                    cell.protection.locked = True
+
+        # Add a polished cover sheet
+        cover_sheet = workbook.create_sheet("Cover", 0)
+        cover_sheet.merge_cells('A1:E5')
+        cover_cell = cover_sheet['A1']
+        cover_cell.value = (
+            f"{title}\n"
+            f"Comprehensive Analysis Report\n"
+            f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"Source: Cambodia Digital Economy Analytics Platform\n"
+            f"Data Sources: World Bank, ADB, McKinsey, ASEAN Digital Masterplan"
+        )
+        cover_cell.font = Font(name='Calibri', size=14, bold=True)
+        cover_cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cover_cell.fill = GradientFill(
+            stop=("E6F3FF", "D1E6FF"),
+            type="linear",
+            degree=45
+        )
+        cover_sheet.row_dimensions[1].height = 120
+        for col in ['A', 'B', 'C', 'D', 'E']:
+            cover_sheet.column_dimensions[col].width = 20
+
+        # Add metadata sheet
+        metadata_sheet = workbook.create_sheet("Metadata", 1)
+        metadata = [
+            ["Report Title", title],
+            ["Generated Date", datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+            ["Data Sources", "World Bank, ADB, McKinsey, ASEAN Digital Masterplan"],
+            ["Methodology", "CAGR with Monte Carlo simulation, adjusted for Cambodia's economic context"],
+            ["Contact", "Cambodia Digital Economy Analytics Platform"],
+        ]
+        for i, (key, value) in enumerate(metadata, start=1):
+            metadata_sheet[f"A{i}"].value = key
+            metadata_sheet[f"A{i}"].font = Font(name='Calibri', bold=True, size=11)
+            metadata_sheet[f"B{i}"].value = value
+            metadata_sheet[f"B{i}"].alignment = Alignment(wrap_text=True)
+            metadata_sheet.column_dimensions['A'].width = 20
+            metadata_sheet.column_dimensions['B'].width = 60
+
+    except Exception as e:
+        st.error(f"Error styling Excel sheet: {str(e)}")
+        raise
+
+# -------------------------------
+# Excel Export Functions
+# -------------------------------
+def create_styled_excel(df_workshops, df_jobs, df_startups, growth_df):
+    """Create a styled Excel file from multiple DataFrames."""
+    output = io.BytesIO()
+    
+    try:
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_workshops.to_excel(writer, sheet_name='Workshops', index=False)
+            df_jobs.to_excel(writer, sheet_name='Jobs', index=False)
+            df_startups.to_excel(writer, sheet_name='Startups', index=False)
+            growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False)
+            
+            style_excel_sheet(writer)
+            
+        output.seek(0)
+        return output
+    
+    except Exception as e:
+        st.error(f"Error creating Excel file: {str(e)}")
+        raise
+
+def create_download_button(excel_data):
+    """Create a Streamlit download button for the styled Excel file."""
+    st.download_button(
+        label="📥 Download Professional Excel Report",
+        data=excel_data,
+        file_name="cambodia_digital_economy_report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        help="Download a professionally formatted Excel report with interactive tables, summary statistics, and visualizations."
+    )
 
 # -------------------------------
 # Sidebar Controls
@@ -266,26 +548,34 @@ try:
     df_jobs = generate_realistic_data(growth_rates_jobs, base_jobs, years)
     df_startups = generate_realistic_data(growth_rates_startups, base_startups, years)
     
+    # Create growth rates DataFrame
+    all_growth_rates = []
+    for category, rates in [("Workshops", growth_rates_workshops), 
+                           ("Jobs", growth_rates_jobs), 
+                           ("Startups", growth_rates_startups)]:
+        for item, rate in rates.items():
+            all_growth_rates.append({
+                'Category': category,
+                'Item': item,
+                'Growth_Rate': rate,
+                'Growth_Level': 'High' if rate > 30 else 'Medium' if rate > 20 else 'Low'
+            })
+    growth_df = pd.DataFrame(all_growth_rates)
+    
     data_loaded = True
     
 except Exception as e:
-    st.error(f"Error loading data: {e}")
+    st.error(f"Error loading data: {str(e)}")
     data_loaded = False
 
 # -------------------------------
 # Main Dashboard
 # -------------------------------
 if data_loaded:
-    # Header with live metrics
     st.title("🇰🇭 Cambodia Digital Economy Analytics Platform")
     
+    # Metrics
     col1, col2, col3, col4 = st.columns(4)
-    custome_colors = {
-        "Workshops": "#1f77b4",
-        "Jobs": "#2ca02c",
-        "Startups": "#9467bd",
-        "Growth Rate": "#ff7f0e"
-    }
     
     with col1:
         st.markdown("""
@@ -299,7 +589,7 @@ if data_loaded:
             </p>
         </div>
         """.format(
-            df_workshops.iloc[-1, 1:].sum(),
+            int(df_workshops.iloc[-1, 1:].sum()),
             int(df_workshops.iloc[-1, 1:].sum() * 0.25)
         ), unsafe_allow_html=True)
     
@@ -315,7 +605,7 @@ if data_loaded:
             </p>
         </div>
         """.format(
-            df_jobs.iloc[-1, 1:].sum(),
+            int(df_jobs.iloc[-1, 1:].sum()),
             int(df_jobs.iloc[-1, 1:].sum() * 0.22)
         ), unsafe_allow_html=True)
     
@@ -331,7 +621,7 @@ if data_loaded:
             </p>
         </div>
         """.format(
-            df_startups.iloc[-1, 1:].sum(),
+            int(df_startups.iloc[-1, 1:].sum()),
             int(df_startups.iloc[-1, 1:].sum() * 0.31)
         ), unsafe_allow_html=True)
     
@@ -350,7 +640,6 @@ if data_loaded:
             </p>
         </div>
         """.format(avg_growth), unsafe_allow_html=True)
-    
     
     st.markdown("---")
     
@@ -375,13 +664,12 @@ if data_loaded:
         </div>
         """, unsafe_allow_html=True)
     
-    # Tabbed interface for better organization
+    # Tabbed interface
     tab1, tab2, tab3, tab4 = st.tabs(["📈 Workshops", "💼 Jobs", "🚀 Startups", "🔮 Predictions"])
     
     with tab1:
         st.subheader("Digital Skills Workshop Participation Trends")
         
-        # Workshop data table
         st.dataframe(
             df_workshops.style.format({"Year": "{:d}"})
             .background_gradient(cmap="Blues", subset=df_workshops.columns[1:])
@@ -389,7 +677,6 @@ if data_loaded:
             use_container_width=True
         )
         
-        # Interactive visualization
         fig_workshops = go.Figure()
         colors = px.colors.qualitative.Set3
         
@@ -425,7 +712,6 @@ if data_loaded:
     with tab2:
         st.subheader("Technology Job Market Demand Forecast")
         
-        # Jobs data table
         st.dataframe(
             df_jobs.style.format({"Year": "{:d}"})
             .background_gradient(cmap="Greens", subset=df_jobs.columns[1:])
@@ -433,7 +719,6 @@ if data_loaded:
             use_container_width=True
         )
         
-        # Interactive visualization
         fig_jobs = go.Figure()
         colors = px.colors.qualitative.Pastel
         
@@ -469,7 +754,6 @@ if data_loaded:
     with tab3:
         st.subheader("Startup Ecosystem Growth Projections")
         
-        # Startup data table
         st.dataframe(
             df_startups.style.format({"Year": "{:d}"})
             .background_gradient(cmap="Purples", subset=df_startups.columns[1:])
@@ -477,7 +761,6 @@ if data_loaded:
             use_container_width=True
         )
         
-        # Interactive visualization
         fig_startups = go.Figure()
         colors = px.colors.qualitative.Dark24
         
@@ -513,7 +796,6 @@ if data_loaded:
     with tab4:
         st.subheader("🔮 Advanced Predictive Analytics")
         
-        # Prediction interface
         pred_col1, pred_col2 = st.columns(2)
         
         with pred_col1:
@@ -554,124 +836,100 @@ if data_loaded:
         
         # Machine Learning Prediction
         if selected_item:
-            X = df_selected['Year'].values.reshape(-1, 1)
-            y = df_selected[selected_item].values
-            
-            # Advanced model with polynomial features
-            from sklearn.preprocessing import PolynomialFeatures
-            from sklearn.pipeline import Pipeline
-            
-            # Create polynomial model
-            poly_model = Pipeline([
-                ('poly', PolynomialFeatures(degree=2)),
-                ('linear', LinearRegression())
-            ])
-            
-            # Fit model
-            poly_model.fit(X, np.log(y + 1))  # Log transform for exponential growth
-            
-            # Generate predictions
-            future_years = np.arange(
-                df_selected['Year'].max() + 1, 
-                df_selected['Year'].max() + 1 + prediction_years
-            ).reshape(-1, 1)
-            
-            pred_log = poly_model.predict(future_years)
-            predictions = np.exp(pred_log) - 1
-            
-            # Calculate confidence intervals
-            residuals = np.log(y + 1) - poly_model.predict(X)
-            mse = np.mean(residuals**2)
-            z_score = 1.96 if confidence_level == 95 else 2.58  # 99% confidence
-            
-            margin_error = z_score * np.sqrt(mse)
-            ci_upper = np.exp(pred_log + margin_error) - 1
-            ci_lower = np.exp(pred_log - margin_error) - 1
-            
-            # Display results
-            st.markdown(f"### 📊 Predictions for {selected_item}")
-            
-            pred_df = pd.DataFrame({
-                'Year': future_years.flatten(),
-                'Predicted': predictions.astype(int),
-                f'Lower {confidence_level}% CI': ci_lower.astype(int),
-                f'Upper {confidence_level}% CI': ci_upper.astype(int)
-            })
-            
-            st.dataframe(
-                pred_df.style.format({
-                    'Predicted': '{:,}',
-                    f'Lower {confidence_level}% CI': '{:,}',
-                    f'Upper {confidence_level}% CI': '{:,}'
-                }),
-                use_container_width=True
-            )
-            
-            # Prediction visualization
-            fig_pred = go.Figure()
-            
-            # Historical data
-            fig_pred.add_trace(go.Scatter(
-                x=df_selected['Year'],
-                y=df_selected[selected_item],
-                mode='lines+markers',
-                name='Historical Data',
-                line=dict(color='blue', width=3),
-                marker=dict(size=8)
-            ))
-            
-            # Predictions
-            fig_pred.add_trace(go.Scatter(
-                x=future_years.flatten(),
-                y=predictions,
-                mode='lines+markers',
-                name='Predictions',
-                line=dict(color='red', dash='dash', width=3),
-                marker=dict(size=8, symbol='diamond')
-            ))
-            
-            # Confidence interval
-            fig_pred.add_trace(go.Scatter(
-                x=np.concatenate([future_years.flatten(), future_years.flatten()[::-1]]),
-                y=np.concatenate([ci_upper, ci_lower[::-1]]),
-                fill='toself',
-                fillcolor='rgba(255,0,0,0.2)',
-                line=dict(color='rgba(255,255,255,0)'),
-                name=f'{confidence_level}% Confidence Interval',
-                showlegend=True
-            ))
-            
-            fig_pred.update_layout(
-                title=f"{selected_item} - Predictive Forecast",
-                xaxis_title="Year",
-                yaxis_title="Count",
-                template="plotly_white",
-                hovermode="x unified",
-                height=500
-            )
-            
-            st.plotly_chart(fig_pred, use_container_width=True)
+            try:
+                X = df_selected['Year'].values.reshape(-1, 1)
+                y = df_selected[selected_item].values
+                
+                # Polynomial model
+                poly_model = Pipeline([
+                    ('poly', PolynomialFeatures(degree=2)),
+                    ('linear', LinearRegression())
+                ])
+                
+                poly_model.fit(X, np.log1p(y))  # Use log1p for numerical stability
+                
+                future_years = np.arange(
+                    df_selected['Year'].max() + 1, 
+                    df_selected['Year'].max() + 1 + prediction_years
+                ).reshape(-1, 1)
+                
+                pred_log = poly_model.predict(future_years)
+                predictions = np.expm1(pred_log)
+                
+                residuals = np.log1p(y) - poly_model.predict(X)
+                mse = np.mean(residuals**2)
+                z_score = 1.96 if confidence_level == 95 else 2.58
+                
+                margin_error = z_score * np.sqrt(mse)
+                ci_upper = np.expm1(pred_log + margin_error)
+                ci_lower = np.expm1(pred_log - margin_error)
+                
+                pred_df = pd.DataFrame({
+                    'Year': future_years.flatten(),
+                    'Predicted': predictions.astype(int),
+                    f'Lower {confidence_level}% CI': ci_lower.astype(int),
+                    f'Upper {confidence_level}% CI': ci_upper.astype(int)
+                })
+                
+                st.markdown(f"### 📊 Predictions for {selected_item}")
+                
+                st.dataframe(
+                    pred_df.style.format({
+                        'Predicted': '{:,}',
+                        f'Lower {confidence_level}% CI': '{:,}',
+                        f'Upper {confidence_level}% CI': '{:,}'
+                    }),
+                    use_container_width=True
+                )
+                
+                fig_pred = go.Figure()
+                
+                fig_pred.add_trace(go.Scatter(
+                    x=df_selected['Year'],
+                    y=df_selected[selected_item],
+                    mode='lines+markers',
+                    name='Historical Data',
+                    line=dict(color='blue', width=3),
+                    marker=dict(size=8)
+                ))
+                
+                fig_pred.add_trace(go.Scatter(
+                    x=future_years.flatten(),
+                    y=predictions,
+                    mode='lines+markers',
+                    name='Predictions',
+                    line=dict(color='red', dash='dash', width=3),
+                    marker=dict(size=8, symbol='diamond')
+                ))
+                
+                fig_pred.add_trace(go.Scatter(
+                    x=np.concatenate([future_years.flatten(), future_years.flatten()[::-1]]),
+                    y=np.concatenate([ci_upper, ci_lower[::-1]]),
+                    fill='toself',
+                    fillcolor='rgba(255,0,0,0.2)',
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name=f'{confidence_level}% Confidence Interval',
+                    showlegend=True
+                ))
+                
+                fig_pred.update_layout(
+                    title=f"{selected_item} - Predictive Forecast",
+                    xaxis_title="Year",
+                    yaxis_title="Count",
+                    template="plotly_white",
+                    hovermode="x unified",
+                    height=500
+                )
+                
+                st.plotly_chart(fig_pred, use_container_width=True)
+                
+            except Exception as e:
+                st.error(f"Error in prediction: {str(e)}")
     
     # Comparative Growth Analysis
     st.markdown("---")
     st.subheader("📊 Comparative Growth Rate Analysis")
     
-    # Combine all growth rates
-    all_growth_rates = []
-    for category, rates in [("Workshops", growth_rates_workshops), 
-                           ("Jobs", growth_rates_jobs), 
-                           ("Startups", growth_rates_startups)]:
-        for item, rate in rates.items():
-            all_growth_rates.append({
-                'Category': category,
-                'Item': item,
-                'Growth_Rate': rate,
-                'Growth_Level': 'High' if rate > 30 else 'Medium' if rate > 20 else 'Low'
-            })
-    
-    growth_df = pd.DataFrame(all_growth_rates)
-    
-    # Interactive growth rate visualization
     fig_growth = px.bar(
         growth_df.sort_values('Growth_Rate', ascending=True),
         x='Growth_Rate',
@@ -710,180 +968,11 @@ if data_loaded:
     </div>
     """, unsafe_allow_html=True)
     
-    # Export functionality
-    def style_excel_sheet(writer, title="Digital Economy Analytics Platform - Cambodia"):
-        """
-        Apply professional styling to an Excel workbook with multiple sheets.
-        
-        Args:
-            writer: pandas ExcelWriter object
-            title: Title for the Excel sheet
-        """
-        try:
-            workbook = writer.book
-
-            # Define enhanced styles
-            title_font = Font(name='Calibri', bold=True, size=16, color="1A365D")
-            header_font = Font(name='Calibri', bold=True, size=12, color="FFFFFF")
-            header_fill = PatternFill(start_color="1A365D", end_color="1A365D", fill_type="solid")
-            center_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            left_alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
-            thin_border = Border(
-                left=Side(style='thin', color='D3D3D3'),
-                right=Side(style='thin', color='D3D3D3'),
-                top=Side(style='thin', color='D3D3D3'),
-                bottom=Side(style='thin', color='D3D3D3')
-            )
-            alternating_fill = PatternFill(start_color="F5F6F5", end_color="F5F6F5", fill_type="solid")
-
-            for sheet_name in writer.sheets:
-                worksheet = writer.sheets[sheet_name]
-
-                # Insert two rows at the top for better spacing
-                worksheet.insert_rows(1, 2)
-                max_col = worksheet.max_column
-
-                # Merge cells for the title
-                worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
-                
-                # Title cell
-                title_cell = worksheet.cell(row=1, column=1)
-                title_cell.value = title
-                title_cell.font = title_font
-                title_cell.alignment = center_alignment
-                title_cell.fill = PatternFill(start_color="E6F3FF", end_color="E6F3FF", fill_type="solid")
-
-                # Style header row (now row 3)
-                for cell in worksheet[3]:
-                    cell.font = header_font
-                    cell.fill = header_fill
-                    cell.alignment = center_alignment
-                    cell.border = thin_border
-
-                # Add table style
-                table_ref = f"A3:{get_column_letter(max_col)}{worksheet.max_row}"
-                tab = Table(displayName=f"Table_{sheet_name}", ref=table_ref)
-                tab.tableStyleInfo = TableStyleInfo(
-                    name="TableStyleMedium2",
-                    showFirstColumn=False,
-                    showLastColumn=False,
-                    showRowStripes=True,
-                    showColumnStripes=False
-                )
-                worksheet.add_table(tab)
-
-                # Apply conditional formatting for numeric columns
-                for col in range(1, max_col + 1):
-                    col_letter = get_column_letter(col)
-                    # Check if column contains numbers
-                    try:
-                        first_value = worksheet[f"{col_letter}4"].value
-                        if isinstance(first_value, (int, float)):
-                            worksheet.conditional_formatting.add(
-                                f"{col_letter}4:{col_letter}{worksheet.max_row}",
-                                {
-                                    "type": "data_bar",
-                                    "bar_color": "#63C0D0",
-                                    "showValue": True,
-                                    "minLength": 0,
-                                    "maxLength": 100
-                                }
-                            )
-                            # Apply number formatting
-                            for cell in worksheet[f"{col_letter}4:{col_letter}{worksheet.max_row}"]:
-                                cell.number_format = FORMAT_NUMBER_00 if isinstance(cell.value, int) else FORMAT_PERCENTAGE_00
-                    except:
-                        continue
-
-                # Adjust column widths and apply formatting to data rows
-                for col in worksheet.columns:
-                    max_length = 0
-                    col_letter = get_column_letter(col[0].column)
-                    
-                    # Calculate max width
-                    for cell in col:
-                        if cell.row < 4:  # Skip title and header rows
-                            continue
-                        if cell.value:
-                            max_length = max(max_length, len(str(cell.value)))
-                    
-                    # Set column width
-                    adjusted_width = min(max(10, max_length + 4), 50)  # Cap max width at 50
-                    worksheet.column_dimensions[col_letter].width = adjusted_width
-
-                    # Apply formatting to data cells
-                    for cell in col[3:]:  # Start from row 4 (data rows)
-                        cell.border = thin_border
-                        cell.alignment = center_alignment if isinstance(cell.value, (int, float)) else left_alignment
-                        # Apply alternating row colors
-                        if cell.row % 2 == 0:
-                            cell.fill = alternating_fill
-
-                # Set row heights
-                worksheet.row_dimensions[1].height = 40  # Title row
-                worksheet.row_dimensions[2].height = 10  # Spacer row
-                worksheet.row_dimensions[3].height = 25  # Header row
-
-                # Add autofilter
-                worksheet.auto_filter.ref = f"A3:{get_column_letter(max_col)}3"
-
-                # Freeze panes below header
-                worksheet.freeze_panes = worksheet['A4']
-
-                # Add worksheet protection for headers
-                worksheet.protection.sheet = True
-                worksheet.protection.autoFilter = False
-                for row in worksheet[f"A1:{get_column_letter(max_col)}3"]:
-                    for cell in row:
-                        cell.protection.locked = True
-
-            # Add a cover sheet
-            cover_sheet = workbook.create_sheet("Cover", 0)
-            cover_sheet.merge_cells('A1:C3')
-            cover_cell = cover_sheet['A1']
-            cover_cell.value = f"{title}\nGenerated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            cover_cell.font = Font(name='Calibri', size=14, bold=True)
-            cover_cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            cover_sheet.row_dimensions[1].height = 60
-            for col in ['A', 'B', 'C']:
-                cover_sheet.column_dimensions[col].width = 20
-
-        except Exception as e:
-            print(f"Error styling Excel sheet: {str(e)}")
-            raise
-
-    # Usage example with Streamlit
-    def create_styled_excel(df_workshops, df_jobs, df_startups, growth_df):
-        output = io.BytesIO()
-        
-        try:
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df_workshops.to_excel(writer, sheet_name='Workshops', index=False)
-                df_jobs.to_excel(writer, sheet_name='Jobs', index=False)
-                df_startups.to_excel(writer, sheet_name='Startups', index=False)
-                growth_df.to_excel(writer, sheet_name='Growth_Rates', index=False)
-                
-                style_excel_sheet(writer)
-                
-            output.seek(0)
-            return output
-        
-        except Exception as e:
-            print(f"Error creating Excel file: {str(e)}")
-            raise
-
-    # Streamlit download button
-    def create_download_button(excel_data):
-        st.download_button(
-            label="📥 Download Professional Excel Report",
-            data=excel_data,
-            file_name="cambodia_digital_economy_report.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            help="Download a professionally formatted Excel report with interactive tables and visualizations."
-        )
-
-else:
-    st.error("❌ Unable to load market data. Please check your connection and try refreshing.")
+    # Export Button
+    st.markdown("---")
+    st.subheader("📥 Export Data")
+    excel_data = create_styled_excel(df_workshops, df_jobs, df_startups, growth_df)
+    create_download_button(excel_data)
 
 # Footer
 st.markdown("""

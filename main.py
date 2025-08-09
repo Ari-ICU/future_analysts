@@ -103,7 +103,7 @@ st.markdown("""
     }
     
     .data-source {
-        background-color: #ffffff;
+        background-color: #000;
         border-left: 4px solid #3b82f6;
         padding: 1rem;
         margin: 1rem 0;
